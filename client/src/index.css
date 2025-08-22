@@ -46,9 +46,7 @@ button {
   cursor: pointer;
   transition: border-color 0.25s;
 }
-button:hover {
-  border-color: #646cff;
-}
+
 button:focus,
 button:focus-visible {
   outline: 4px auto -webkit-focus-ring-color;
@@ -97,6 +95,57 @@ button:focus-visible {
   background-color: #352849;
 }
 
+.ability-button {
+  padding: 5px !important;
+  width: 50px !important;
+  height: 40px !important;
+  background-color: #646cff;
+  margin-top: 20px;
+  transition: background-color 0.25s;
+}
+
+.ability-button:hover {
+  background-color: #535bf2;
+}
+
+.delete-button {
+  background-color: transparent;
+  border: 1px solid #8e0202;
+  color: #8e0202;
+  width: 50%;
+}
+
+.delete-button.sm {
+  width: 20% !important;
+  height: 40px !important;
+  padding: 0 !important;
+}
+
+.delete-button:hover {
+  background-color: #8e0202;
+  color: #dadada;
+}
+
+.cancel-button {
+  background-color: transparent;
+  border: 1px solid #737373;
+  color: #737373;
+  width: 50%;
+}
+
+.cancel-button:hover {
+  background-color: #737373;
+  color: #dadada;
+}
+
+.action-section {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: row;
+  gap: 1em;
+}
+
 
 /*MODAL*/
 
@@ -121,6 +170,7 @@ button:focus-visible {
     min-width: 600px;
     text-align: center;
     position: relative;
+
   }
 
   .pillar-form {
@@ -132,24 +182,6 @@ button:focus-visible {
 
   }
 
-
-
-  .delete-button {
-    background-color: #8e0202;
-    width: 100px;
-    height: 30px;
-    padding: 0;
-    font-size: 18px;
-    color: white;
-    border: none;
-    border-radius: 10px;
-    cursor: pointer;
-    transition: background-color 0.25s;
-  }
-
-  .delete-button:hover {
-    background-color: #640202;
-  }
 
   .close {
     position: absolute;
@@ -172,15 +204,17 @@ button:focus-visible {
 
 
   form {
+    width: 100%;
     margin-top: 2em;
     display: flex;
     justify-content: center;
     align-items: center;
     flex-direction: column;
     gap: 1em;
+    padding: 1em;
 
 
-    input {
+    input, textarea {
       padding: 0.5em;
       border-radius: 8px;
       border: 1px solid #989898;
@@ -191,4 +225,36 @@ button:focus-visible {
     }
 
   }
+}
+
+/*CARDS*/
+
+.characters-list { display: flex; flex-wrap: wrap; gap: 1rem; justify-content: center; }
+
+.character-card {
+  border: none;
+  border-radius: 10px;
+  padding: 12px 14px;
+  width: 220px;
+  background: #702828;
+  text-align: left;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+}
+
+.character-card h3 { margin: 0 0 8px; }
+
+.pillars-list { margin: 8px 0 0; padding-left: 18px; }
+.pillars-list li { margin-bottom: 4px; }
+
+.muted { color: #777; font-size: 0.9rem; margin: 6px 0 0; }
+
+/*ICONS*/
+
+.rpg-icon {
+  width: 24px;
+  height: 24px;
+}
+
+.delete-icon {
+  width: 32px;
 }

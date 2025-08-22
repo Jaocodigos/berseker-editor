@@ -13,12 +13,14 @@ app.use(express.json())
 app.get('/api/health', (_, res) => res.json({ ok: true }))
 
 // ================= Characters =================
-app.get('/api/characters', async (req, res, next) => {
+app.get("/api/characters", async (req, res, next) => {
     try {
-        const list = await prisma.character.findMany({ orderBy: { id: 'desc' } })
-        res.json(list)
-    } catch (e) { next(e) }
-})
+        const list = await prisma.character.findMany({
+            include: { pillars: { include: { abilities: true }} }
+        });
+        res.json(list);
+    } catch (e) { next(e); }
+});
 
 app.post('/api/characters', async (req, res, next) => {
     try {
@@ -45,6 +47,58 @@ app.post('/api/characters', async (req, res, next) => {
 
     } catch (e) {
         console.log(`ERRO AO CRIAR PERSONAGEM: ${e.message}`)
+        next(e);
+    }
+});
+
+// Deletar Personagem
+app.delete("/api/characters/:id", async (req, res, next) => {
+    try {
+        const { id } = req.params;
+
+        const deleted = await prisma.character.delete({
+            where: { id: Number(id) }
+        });
+
+        res.json({ message: "Personagem deletado", deleted });
+    } catch (e) {
+        next(e);
+    }
+});
+
+// Listar habilidades
+app.get('/api/abilities', async (req, res, next) => {
+    try {
+        const list = await prisma.ability.findMany({
+            include: { pillars: { include: { abilities: true } } }
+        });
+        res.json(list);
+    } catch (e) { next(e); }
+});
+
+// Cria habilidade pro usuário
+app.post('/api/abilities', async (req, res, next) => {
+    try {
+        const { nome, descricao, dano, custo, pillarId } = req.body;
+
+        if (!nome || !pillarId || !dano || !custo) {
+            return res.status(400).json({ error: 'Todos os campos são obrigatórios.' });
+        }
+
+        const created = await prisma.ability.create({
+            data: {
+                nome,
+                descricao,
+                dano,
+                custo,
+                pillar: {
+                    connect: { id: pillarId }
+                }
+            }
+        });
+
+        res.status(201).json(created);
+    } catch (e) {
         next(e);
     }
 });

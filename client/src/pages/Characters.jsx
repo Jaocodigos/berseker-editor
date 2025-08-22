@@ -1,11 +1,28 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import CharacterCard from "../components/CharacterCard";
+import { TrashIcon } from '@heroicons/react/16/solid'
 
 export default function Characters() {
     const [showModal, setShowModal] = useState(false);
-
     const [pillars, setPillars] = useState([]);
-
     const [characterName, setCharacterName] = useState("");
+    const [characters, setCharacters] = useState([]); // lista de personagens
+
+    // buscar personagens ao carregar a página
+    useEffect(() => {
+        fetchCharacters();
+    }, []);
+
+    const fetchCharacters = async () => {
+        try {
+            const res = await fetch("http://localhost:3001/api/characters");
+            const data = await res.json();
+            setCharacters(data);
+        } catch (err) {
+            console.error("Erro ao carregar personagens:", err);
+        }
+    };
+
 
     const addPillar = () => {
         setPillars([...pillars, { name: "", type: "", mana: "" }]);
@@ -71,13 +88,19 @@ export default function Characters() {
 
     return (
         <div style={{ textAlign: "center" }}>
-            <h1>🧙‍♂️ Personagens</h1>
-            <p>Veja a lista de heróis e vilões!</p>
+            <h1></h1>
+            <p>Veja a lista de personagens e crie habilidades.</p>
 
             {/* Botão para abrir o modal */}
             <button onClick={() => setShowModal(true)} className={"rpg-button add-button"}>
                 Adicionar Personagem
             </button>
+
+            <div className="characters-list" style={{ display: "flex", flexWrap: "wrap", gap: "1rem", justifyContent: "center", marginTop: "2rem" }}>
+                {characters.map((char) => (
+                    <CharacterCard key={char.id} character={char} onRefresh={fetchCharacters} />
+                ))}
+            </div>
 
             {/* Modal */}
             {showModal && (
@@ -119,8 +142,8 @@ export default function Characters() {
                                         value={pillar.mana}
                                         onChange={(e) => handlePillarChange(index, "mana", e.target.value)}
                                     />
-                                    <button type="button" onClick={() => removePillar(index)} className={"delete-button"}>
-                                        X
+                                    <button type="button" onClick={() => removePillar(index)} className={"rpg-button delete-button sm"}>
+                                        <TrashIcon className="size-6 text-blue-500 rpg-icon" />
                                     </button>
                                 </div>
                             ))}
