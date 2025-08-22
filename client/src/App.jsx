@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
 import Home from "./pages/Home";
 import Characters from "./pages/Characters";
 import Adventure from "./pages/Adventure";
+import Abilities from "./pages/Abilities";
 
 export default function App() {
     return (
@@ -20,6 +21,7 @@ export default function App() {
                         <Route path="/" element={<Home />} />
                         <Route path="/characters" element={<Characters />} />
                         <Route path="/adventure" element={<Adventure />} />
+                        <Route path="/characters/:characterId/abilities" element={<Abilities />} />
                     </Routes>
                 </main>
 

@@ -1,10 +1,13 @@
 import { useState } from "react";
 import Modal from "./Modal";
 import { FireIcon, TrashIcon, PencilIcon } from '@heroicons/react/16/solid'
+import { useNavigate } from "react-router-dom";
 
 
 export default function CharacterCard({ character, onRefresh }) {
     const pillars = character.pillars || [];
+
+    const navigate = useNavigate();
 
     console.log(`ABILITIES: ${JSON.stringify(pillars)}`)
 
@@ -53,27 +56,6 @@ export default function CharacterCard({ character, onRefresh }) {
         }
     }
 
-    // Deletar habilidades
-    async function deleteAbility(id) {
-        try {
-            const res = await fetch(`http://localhost:3001/api/abilities/${id}`, {
-                method: "DELETE"
-            });
-            if (!res.ok) throw new Error("Falha ao deletar habilidade");
-            return await res.json();
-        } catch (err) {
-            console.error(err);
-            throw err;
-        }
-    }
-
-    function handleDeleteAbility(id) {
-
-        deleteAbility(id)
-            .then(() => onRefresh && onRefresh())
-            .catch(() => alert("Não foi possível deletar a habilidade."));
-
-    }
 
     return (
 
@@ -97,7 +79,7 @@ export default function CharacterCard({ character, onRefresh }) {
 
 
             <div className="action-section">
-                <button className="rpg-button ability-button" onClick={() => setOpenAbilities(true)}>
+                <button className="rpg-button ability-button" onClick={() => navigate(`/characters/${character.id}/abilities`)}>
                     <FireIcon className="size-6 text-blue-500 rpg-icon" />
                 </button>
                 <button className="rpg-button ability-button" onClick={() => setShowDeleteModal(true)}>

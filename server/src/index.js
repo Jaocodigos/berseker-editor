@@ -22,6 +22,16 @@ app.get("/api/characters", async (req, res, next) => {
     } catch (e) { next(e); }
 });
 
+app.get('/api/characters/:id', async (req, res, next) => {
+    try {
+        const id = Number(req.params.id)
+        const char = await prisma.character.findUnique({ where: { id },
+            include: { pillars: { include: { abilities: true }}} })
+        if (!char) return res.status(404).json({ error: 'Personagem não encontrado' })
+        res.json(char)
+    } catch (e) { next(e) }
+})
+
 app.post('/api/characters', async (req, res, next) => {
     try {
         const { name, pillars = [] } = req.body;
@@ -66,6 +76,9 @@ app.delete("/api/characters/:id", async (req, res, next) => {
     }
 });
 
+
+// ================= Abilitites  =================
+
 // Listar habilidades
 app.get('/api/abilities', async (req, res, next) => {
     try {
@@ -103,14 +116,7 @@ app.post('/api/abilities', async (req, res, next) => {
     }
 });
 
-app.get('/api/characters/:id', async (req, res, next) => {
-    try {
-        const id = Number(req.params.id)
-        const char = await prisma.character.findUnique({ where: { id } })
-        if (!char) return res.status(404).json({ error: 'Personagem não encontrado' })
-        res.json(char)
-    } catch (e) { next(e) }
-})
+
 
 app.patch('/api/characters/:id', async (req, res, next) => {
     try {
