@@ -204,7 +204,7 @@ button:focus-visible {
 
 
   form {
-    width: 100%;
+    width: 90%;
     margin-top: 2em;
     display: flex;
     justify-content: center;
@@ -214,14 +214,16 @@ button:focus-visible {
     padding: 1em;
 
 
-    input, textarea {
+    input, textarea, select {
       padding: 0.5em;
       border-radius: 8px;
       border: 1px solid #989898;
       font-size: 1em;
       font-weight: 500;
       font-family: inherit;
+      min-width: 300px;
       width: 100%;
+      box-sizing: border-box;
     }
 
   }

@@ -178,18 +178,12 @@ export default function CharacterCard({ character, onRefresh }) {
                         onSubmit={async (e) => {
                             e.preventDefault();
 
-                            const pillarId = character.pillars?.[0]?.id;
-                            if (!pillarId) {
-                                alert("Este personagem não tem pilares. Crie um pilar antes de adicionar habilidades.");
-                                return;
-                            }
-
                             const ability = {
                                 nome: e.target.nome.value,
                                 descricao: e.target.descricao.value,
                                 dano: e.target.dano.value,
                                 custo: Number(e.target.custo.value),
-                                pillarId: pillarId
+                                pillarId:  Number(e.target.pillarId.value)
                             };
 
                             try {
@@ -204,11 +198,17 @@ export default function CharacterCard({ character, onRefresh }) {
                             }
                         }}
                     >
-
                         <input name="nome" type="text" placeholder="Nome" required />
 
                         <input name="dano" type="text" placeholder="Dano" required />
                         <input name="custo" type="number" placeholder="Custo de mana" required />
+                        <select name="pillarId" required defaultValue="">
+                            {character.pillars.map(p => (
+                                <option key={p.id} value={p.id}>
+                                    {p.nome} ({p.tipo})
+                                </option>
+                            ))}
+                        </select>
 
                         <textarea name="descricao" placeholder="Descrição" />
 
