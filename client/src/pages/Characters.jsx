@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import CharacterCard from "../components/CharacterCard";
 import { TrashIcon } from '@heroicons/react/16/solid'
+import {PlusIcon} from "@heroicons/react/16/solid/index.js";
 
 export default function Characters() {
     const [showModal, setShowModal] = useState(false);
@@ -87,13 +88,12 @@ export default function Characters() {
     };
 
     return (
-        <div style={{ textAlign: "center" }}>
-            <h1></h1>
+        <div style={{ textAlign: "center", padding: "2rem" }}>
             <p>Veja a lista de personagens e crie habilidades.</p>
 
             {/* Botão para abrir o modal */}
-            <button onClick={() => setShowModal(true)} className={"rpg-button add-button"}>
-                Adicionar Personagem
+            <button className="rpg-button add-button" onClick={() => setShowModal(true)}>
+                <PlusIcon className="size-6 text-blue-500 rpg-icon bg" />
             </button>
 
             <div className="characters-list" style={{ display: "flex", flexWrap: "wrap", gap: "1rem", justifyContent: "center", marginTop: "2rem" }}>

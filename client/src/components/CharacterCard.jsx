@@ -13,33 +13,13 @@ export default function CharacterCard({ character, onRefresh }) {
 
     const [openAbilities, setOpenAbilities] = useState(false);
 
-    const [openAddAbility, setOpenAddAbility] = useState(false);
+
 
     const [showDeleteModal, setShowDeleteModal] = useState(false);
 
     const [openEditAbility, setOpenEditAbility] = useState(false);
 
-    async function createAbility(abilityData) {
-        try {
 
-            console.log(`Criando habilidade: ${JSON.stringify(abilityData)}`);
-
-            const res = await fetch("http://localhost:3001/api/abilities", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    ...abilityData
-                })
-            });
-
-            if (!res.ok) throw new Error("Erro ao criar habilidade");
-
-            return await res.json();
-        } catch (err) {
-            console.error(err);
-            throw err;
-        }
-    }
 
     async function deleteCharacter(id) {
         try {
@@ -146,59 +126,6 @@ export default function CharacterCard({ character, onRefresh }) {
                     );
                 })()}
 
-
-                {/*Novas habilidades*/}
-                <button style={{ marginTop: "10px"}} className="rpg-button add-button" onClick={() => setOpenAddAbility(true)}>
-                    Adicionar Habilidade
-                </button>
-                <Modal
-                    title="Nova Habilidade"
-                    open={openAddAbility}
-                    onClose={() => setOpenAddAbility(false)}
-                >
-                    <form
-                        onSubmit={async (e) => {
-                            e.preventDefault();
-
-                            const ability = {
-                                nome: e.target.nome.value,
-                                descricao: e.target.descricao.value,
-                                dano: e.target.dano.value,
-                                custo: Number(e.target.custo.value),
-                                pillarId:  Number(e.target.pillarId.value)
-                            };
-
-                            try {
-                                await createAbility(ability);
-
-                                e.target.reset();
-                                setOpenAddAbility(false);
-
-                                onRefresh && onRefresh();
-                            } catch {
-                                alert("Não foi possível criar a habilidade.");
-                            }
-                        }}
-                    >
-                        <input name="nome" type="text" placeholder="Nome" required />
-
-                        <input name="dano" type="text" placeholder="Dano" required />
-                        <input name="custo" type="number" placeholder="Custo de mana" required />
-                        <select name="pillarId" required defaultValue="">
-                            {character.pillars.map(p => (
-                                <option key={p.id} value={p.id}>
-                                    {p.nome} ({p.tipo})
-                                </option>
-                            ))}
-                        </select>
-
-                        <textarea name="descricao" placeholder="Descrição" />
-
-                        <button type="submit" className="rpg-button save-button">
-                            Salvar
-                        </button>
-                    </form>
-                </Modal>
             </Modal>
         </div>
     );

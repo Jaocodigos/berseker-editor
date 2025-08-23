@@ -11,6 +11,21 @@
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+
+/* CUSTOM */
+
+  --bg-primary-color: #393636;
+  --bg-secondary-color: rgb(37, 35, 35);
+
+  --nav-primary-color: #232323;
+
+  --btn-primary-color: #646cff;
+  --btn-primary-hover-color: #535bf2;
+  --btn-secondary-color: #8e74dd;
+  --btn-secondary-hover-color: #6e57b1;
+  --btn-danger-color: #8e0202;
+  --btn-danger-hover-color: #730202;
+
 }
 
 a {
@@ -77,15 +92,28 @@ button:focus-visible {
 
   border-radius: 8px;
   cursor: pointer;
-  transition: background-color 0.25s;
+  transition: all 0.25s;
 }
 
 .add-button {
-  background-color: #bd850a;
+  width: 70px;
+  height: 40px;
+  background-color: transparent;
+  color: var(--btn-primary-color);
+  border: 1px solid var(--btn-primary-color);
+
+  border-radius: 14px;
+
+  display: flex;
+  align-items: center;
+  margin: 0 auto 20px;
+
 }
 
 .add-button:hover {
-  background-color: #9a6f08;
+
+  background-color: var(--btn-primary-hover-color);
+  color: #dadada;
 }
 
 .save-button {
@@ -261,6 +289,11 @@ button:focus-visible {
   height: 24px;
 }
 
+.rpg-icon.bg {
+  width: 36px;
+  height: 36px;
+}
+
 .delete-icon {
   width: 32px;
 }
@@ -283,7 +316,7 @@ button:focus-visible {
   position: absolute;
   top: 100%;
   right: 0;
-  background: #1e1e2f;
+  background: var(--bg-secondary-color);
   border: 1px solid #444;
   border-radius: 6px;
   padding: 0.5rem;
@@ -328,7 +361,7 @@ button:focus-visible {
 }
 
 .dropdown-item:hover {
-  background: #333;
+  background: #2c2c2c;
 }
 
 .dropdown-item.delete {
@@ -370,16 +403,17 @@ button:focus-visible {
   tbody {
     border: none;
 
-    background-color: #3f4040;
+    background-color: var(--bg-primary-color);
 
 
     tr {
+
       height: 50px;
       border-radius: 10px;
     }
 
     td {
-
+      max-width: 30px;
 
     }
   }
