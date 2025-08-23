@@ -1,0 +1,36 @@
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Character {
+  id       Int      @id @default(autoincrement())
+  nome     String
+  pillars  Pillar[]  // um personagem pode ter vários pilares (até 3 na lógica da aplicação)
+
+  @@map("characters") // renomeia a tabela no banco para "characters"
+}
+
+model Pillar {
+  id          Int       @id @default(autoincrement())
+  nome        String
+  tipo        String
+  mana        Int
+  character   Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  characterId Int
+  abilities   Ability[]
+}
+
+model Ability {
+  id       Int     @id @default(autoincrement())
+  nome     String
+  descricao String
+  dano     String
+  custo    Int
+  pillar   Pillar @relation(fields: [pillarId], references: [id], onDelete: Cascade)
+  pillarId Int
+}

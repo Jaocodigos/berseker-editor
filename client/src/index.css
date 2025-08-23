@@ -1,0 +1,421 @@
+:root {
+  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+
+  color-scheme: light dark;
+  color: rgba(255, 255, 255, 0.87);
+  background-color: #242424;
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+/* CUSTOM */
+
+  --bg-primary-color: #393636;
+  --bg-secondary-color: rgb(37, 35, 35);
+
+  --nav-primary-color: #232323;
+
+  --btn-primary-color: #646cff;
+  --btn-primary-hover-color: #535bf2;
+  --btn-secondary-color: #8e74dd;
+  --btn-secondary-hover-color: #6e57b1;
+  --btn-danger-color: #8e0202;
+  --btn-danger-hover-color: #730202;
+
+}
+
+a {
+  font-weight: 500;
+  color: #646cff;
+  text-decoration: inherit;
+}
+a:hover {
+  color: #535bf2;
+}
+
+body {
+  margin: 0;
+  display: flex;
+  place-items: center;
+  min-width: 320px;
+  min-height: 100vh;
+}
+
+h1 {
+  font-size: 3.2em;
+  line-height: 1.1;
+}
+
+button {
+  border-radius: 8px;
+  border: 1px solid transparent;
+  padding: 0.6em 1.2em;
+  font-size: 1em;
+  font-weight: 500;
+  font-family: inherit;
+  background-color: #1a1a1a;
+  cursor: pointer;
+  transition: border-color 0.25s;
+}
+
+button:focus,
+button:focus-visible {
+  outline: 4px auto -webkit-focus-ring-color;
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    color: #213547;
+    background-color: #ffffff;
+  }
+  a:hover {
+    color: #747bff;
+  }
+  button {
+    background-color: #f9f9f9;
+  }
+}
+
+
+
+/*BUTTONS*/
+
+.rpg-button {
+  width: 35%;
+  padding: 10px 20px;
+  color: white;
+  border: none;
+
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.25s;
+}
+
+.add-button {
+  width: 70px;
+  height: 40px;
+  background-color: transparent;
+  color: var(--btn-primary-color);
+  border: 1px solid var(--btn-primary-color);
+
+  border-radius: 14px;
+
+  display: flex;
+  align-items: center;
+  margin: 0 auto 20px;
+
+}
+
+.add-button:hover {
+
+  background-color: var(--btn-primary-hover-color);
+  color: #dadada;
+}
+
+.save-button {
+  background-color: #3a2a5c;
+}
+
+.save-button:hover {
+  background-color: #352849;
+}
+
+.ability-button {
+  padding: 5px !important;
+  width: 50px !important;
+  height: 40px !important;
+  background-color: #646cff;
+  margin-top: 20px;
+  transition: background-color 0.25s;
+}
+
+.ability-button:hover {
+  background-color: #535bf2;
+}
+
+.delete-button {
+  background-color: transparent;
+  border: 1px solid #8e0202;
+  color: #8e0202;
+  width: 50%;
+}
+
+.delete-button.sm {
+  width: 20% !important;
+  height: 40px !important;
+  padding: 0 !important;
+}
+
+.delete-button:hover {
+  background-color: #8e0202;
+  color: #dadada;
+}
+
+.cancel-button {
+  background-color: transparent;
+  border: 1px solid #737373;
+  color: #737373;
+  width: 50%;
+}
+
+.cancel-button:hover {
+  background-color: #737373;
+  color: #dadada;
+}
+
+.action-section {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: row;
+  gap: 1em;
+}
+
+
+/*MODAL*/
+
+
+.rpg-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0,0,0,0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+
+  .modal-body {
+    background-color: #272727;
+    padding: 30px;
+    border-radius: 10px;
+    min-height: 300px;
+    min-width: 600px;
+    max-width: 900px;
+    text-align: center;
+    position: relative;
+    overflow-y: auto;     /* ativa rolagem vertical se o texto for grande */
+    word-wrap: break-word; /* quebra palavras muito longas */
+
+  }
+
+  .pillar-form {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: row;
+    gap: 1em;
+
+  }
+
+
+  .close {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: transparent;
+    border: none;
+    font-size: 18px;
+    cursor: pointer;
+    transition: color 0.25s, background-color 0.25s;
+
+
+
+  }
+
+  .close:hover {
+    color: #646cff;
+    background-color: #3a2a5c;
+  }
+
+
+  form {
+    width: 90%;
+    margin-top: 2em;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    gap: 1em;
+    padding: 1em;
+
+
+    input, textarea, select {
+      padding: 0.5em;
+      border-radius: 8px;
+      border: 1px solid #989898;
+      font-size: 1em;
+      font-weight: 500;
+      font-family: inherit;
+      min-width: 300px;
+      width: 100%;
+      box-sizing: border-box;
+    }
+
+  }
+}
+
+/*CARDS*/
+
+.characters-list { display: flex; flex-wrap: wrap; gap: 1rem; justify-content: center; }
+
+.character-card {
+  border: none;
+  border-radius: 10px;
+  padding: 12px 14px;
+  width: 220px;
+  background: #702828;
+  text-align: left;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+}
+
+.character-card h3 { margin: 0 0 8px; }
+
+.pillars-list { margin: 8px 0 0; padding-left: 18px; }
+.pillars-list li { margin-bottom: 4px; }
+
+.muted { color: #777; font-size: 0.9rem; margin: 6px 0 0; }
+
+/*ICONS*/
+
+.rpg-icon {
+  width: 24px;
+  height: 24px;
+}
+
+.rpg-icon.bg {
+  width: 36px;
+  height: 36px;
+}
+
+.delete-icon {
+  width: 32px;
+}
+
+
+/*---------------*/
+
+.dropdown {
+  position: relative;
+  display: inline-block;
+  background: transparent;
+
+  button {
+    background-color: transparent;
+  }
+
+}
+
+.dropdown-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  background: var(--bg-secondary-color);
+  border: 1px solid #444;
+  border-radius: 6px;
+  padding: 0.5rem;
+  z-index: 10;
+  min-width: 220px;
+  /*display: flex;*/
+  /*justify-content: space-between;*/
+  /*align-items: center;*/
+  /*flex-direction: column;*/
+}
+
+.dropdown-item {
+  display: block;
+
+  width: 100%;
+  padding: 0.5rem;
+  background: transparent;
+  color: #fff;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  box-sizing: border-box;
+  border-radius: 8px;
+
+  button {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+
+
+    svg {
+      margin-right: 0.3em;
+    }
+  }
+
+  button:focus {
+    outline: none;
+  }
+
+}
+
+.dropdown-item:hover {
+  background: #2c2c2c;
+}
+
+.dropdown-item.delete {
+  color: #ff4d4d;
+}
+
+/*PAGES*/
+
+.abilities-page {
+  padding: 20px;
+}
+
+
+/*TABLE*/
+
+.rpg-table {
+  width: 100%;
+  border-collapse: collapse;
+  background-color: #4b50cf;
+  border-radius: 10px;
+
+  thead {
+    border: none;
+    border-radius: 10px;
+    height: 50px;
+
+
+    tr {
+      border-radius: 10px;
+
+    }
+
+    th {
+      border-radius: 10px;
+
+    }
+  }
+
+  tbody {
+    border: none;
+
+    background-color: var(--bg-primary-color);
+
+
+    tr {
+
+      height: 50px;
+      border-radius: 10px;
+    }
+
+    td {
+      max-width: 30px;
+
+    }
+  }
+
+}
