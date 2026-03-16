@@ -81,6 +81,9 @@ export default function Characters() {
             setPillars([]);
             setShowModal(false);
 
+            await fetchCharacters();
+
+
         } catch (error) {
             console.error(error);
             alert("Não foi possível criar o personagem.");
@@ -150,7 +153,7 @@ export default function Characters() {
 
 
                             {/* Botão para adicionar pilar */}
-                            <button type="button" onClick={addPillar} className={"rpg-button add-button"}>
+                            <button type="button" onClick={addPillar} className={"rpg-button add-button character-button"}>
                                 Adicionar Pilar
                             </button>
 
