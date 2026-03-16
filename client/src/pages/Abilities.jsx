@@ -3,13 +3,17 @@ import { useEffect, useState } from "react";
 import Modal from "../components/Modal";
 import {TrashIcon, EyeIcon, PlusIcon} from "@heroicons/react/16/solid/index.js";
 
-export default function Abilities(onRefresh) {
+export default function Abilities({ onRefresh }) {
     const { characterId } = useParams(); // pega o ID do personagem da URL
     const [character, setCharacter] = useState(null);
 
     // Controle de estado da habilidade
     const [selectedAbility, setSelectedAbility] = useState(null);
     const [openDropdownId, setOpenDropdownId] = useState(null);
+
+    // Modals
+    const [showDescription, setShowDescription] = useState(false);
+    const [openAddAbility, setOpenAddAbility] = useState(false);
 
     useEffect(() => {
         function handleClickOutside(e) {
@@ -25,9 +29,25 @@ export default function Abilities(onRefresh) {
         };
     }, []);
 
-    // Modals
-    const [showDescription, setShowDescription] = useState(false);
-    const [openAddAbility, setOpenAddAbility] = useState(false);
+
+    useEffect(() => {
+
+        fetchCharacter();
+
+    }, []);
+
+    // Pegar user
+    async function fetchCharacter() {
+        try {
+            const res = await fetch(`http://localhost:3001/api/characters/${characterId}`);
+            const data = await res.json();
+            setCharacter(data);
+        } catch (err) {
+            console.error("Erro ao buscar personagem:", err);
+        }
+    }
+
+
 
     // Criar habilidade
     async function createAbility(abilityData) {
@@ -35,7 +55,7 @@ export default function Abilities(onRefresh) {
 
             console.log(`Criando habilidade: ${JSON.stringify(abilityData)}`);
 
-            const res = await fetch("http://localhost:3001/api/abilities", {
+            const res = await fetch(`http://localhost:3001/api/abilities`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
@@ -53,18 +73,27 @@ export default function Abilities(onRefresh) {
     }
 
     // Deletar habilidades
-    async function deleteAbility(id) {
+    async function deleteAbility(abilityId) {
         try {
-            const res = await fetch(`http://localhost:3001/api/abilities/${id}`, {
+
+            console.log(`Deletando habilidade: ${abilityId}`);
+
+            const res = await fetch(`http://localhost:3001/api/abilities/${abilityId}`, {
                 method: "DELETE"
             });
-            if (!res.ok) throw new Error("Falha ao deletar habilidade");
-            return await res.json();
+
+            if (res.status !== 204) throw new Error("Falha ao deletar habilidade");
+
+            fetchCharacter()
+
+            return  "Habilidade deletada com sucesso!";
         } catch (err) {
             console.error(err);
             throw err;
         }
     }
+
+
 
     function AbilityRow({ pillar, ability, openDropdownId, setOpenDropdownId }) {
         const isOpen = openDropdownId === ability.id;
@@ -116,21 +145,7 @@ export default function Abilities(onRefresh) {
         );
     }
 
-    useEffect(() => {
 
-        // Pegar user
-        async function fetchCharacter() {
-            try {
-                const res = await fetch(`http://localhost:3001/api/characters/${characterId}`);
-                const data = await res.json();
-                setCharacter(data);
-            } catch (err) {
-                console.error("Erro ao buscar personagem:", err);
-            }
-        }
-
-        fetchCharacter();
-    }, [characterId]);
 
     if (!character) return <p>Carregando...</p>;
 
@@ -161,6 +176,7 @@ export default function Abilities(onRefresh) {
 
                         try {
                             await createAbility(ability);
+                            await fetchCharacter();
 
                             e.target.reset();
                             setOpenAddAbility(false);
