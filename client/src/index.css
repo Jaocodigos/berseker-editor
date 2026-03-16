@@ -204,7 +204,7 @@ button:focus-visible {
     padding: 30px;
     border-radius: 10px;
     min-height: 150px;
-    min-width: 460px;
+    min-width: 600px;
     max-width: 800px;
     text-align: center;
     position: relative;
@@ -224,6 +224,10 @@ button:focus-visible {
     align-items: center;
     flex-direction: row;
     gap: 1em;
+
+    input {
+      min-width: 25%;
+    }
 
   }
 
