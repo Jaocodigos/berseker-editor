@@ -23,6 +23,8 @@ model Pillar {
   character   Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
   characterId Int
   abilities   Ability[]
+
+  @@map("pillar")
 }
 
 model Ability {
@@ -33,4 +35,6 @@ model Ability {
   custo    Int
   pillar   Pillar @relation(fields: [pillarId], references: [id], onDelete: Cascade)
   pillarId Int
+
+  @@map("ability")
 }
