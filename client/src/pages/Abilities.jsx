@@ -16,6 +16,9 @@ export default function Abilities({ onRefresh }) {
     const [openAddAbility, setOpenAddAbility] = useState(false);
 
     useEffect(() => {
+
+        fetchCharacter();
+
         function handleClickOutside(e) {
             // fecha se clicar fora de qualquer dropdown
             if (!e.target.closest(".dropdown")) {
@@ -29,12 +32,6 @@ export default function Abilities({ onRefresh }) {
         };
     }, []);
 
-
-    useEffect(() => {
-
-        fetchCharacter();
-
-    }, []);
 
     // Pegar user
     async function fetchCharacter() {
