@@ -154,7 +154,7 @@ export default function Characters() {
 
                             {/* Botão para adicionar pilar */}
                             <button type="button" onClick={addPillar} className={"rpg-button add-button character-button"}>
-                                Adicionar Pilar
+                                + Pilar
                             </button>
 
                             <button type="submit" className={"rpg-button save-button"}>

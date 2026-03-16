@@ -40,7 +40,7 @@ export default function CharacterCard({ character, onRefresh }) {
     return (
 
         // Card do personagem
-        <div className="character-card">
+        <div className={`character-card${showDeleteModal ? " modal-open" : ""}`}>
             <h3>{character.nome}</h3>
 
             {pillars.length > 0 ? (
