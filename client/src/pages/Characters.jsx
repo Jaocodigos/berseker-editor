@@ -7,6 +7,7 @@ export default function Characters() {
     const [showModal, setShowModal] = useState(false);
     const [pillars, setPillars] = useState([]);
     const [characterName, setCharacterName] = useState("");
+    const [characterMaxHp, setCharacterMaxHp] = useState("");
     const [characters, setCharacters] = useState([]); // lista de personagens
 
     // buscar personagens ao carregar a página
@@ -26,7 +27,7 @@ export default function Characters() {
 
 
     const addPillar = () => {
-        setPillars([...pillars, { name: "", type: "", mana: "" }]);
+        setPillars([...pillars, { name: "", type: "", maxMana: "" }]);
     };
 
     const removePillar = (index) => {
@@ -50,10 +51,13 @@ export default function Characters() {
         // Montar objeto com os dados
         const personagem = {
             name: characterName,       // Nome do personagem
+            maxHp: characterMaxHp === "" ? undefined : Number(characterMaxHp),
+            actualHp: characterMaxHp === "" ? undefined : Number(characterMaxHp),
             pillars: pillars.map(p => ({     // Pilares
                 name: p.name,
                 type: p.type,
-                mana: Number(p.mana)
+                maxMana: Number(p.maxMana),
+                actualMana: Number(p.maxMana)
             }))
         };
 
@@ -79,6 +83,7 @@ export default function Characters() {
             // Limpar formulário e fechar modal
             e.target.reset();
             setPillars([]);
+            setCharacterMaxHp("");
             setShowModal(false);
 
             await fetchCharacters();
@@ -122,6 +127,13 @@ export default function Characters() {
 
                             <input type="text" placeholder="Nome do personagem"  value={characterName}
                                 onChange={(e) => setCharacterName(e.target.value)}/>
+                            <input
+                                type="number"
+                                placeholder="HP"
+                                min="0"
+                                value={characterMaxHp}
+                                onChange={(e) => setCharacterMaxHp(e.target.value)}
+                            />
 
 
                             {/* Lista de pilares */}
@@ -142,8 +154,8 @@ export default function Characters() {
                                     <input
                                         type="number"
                                         placeholder="Mana"
-                                        value={pillar.mana}
-                                        onChange={(e) => handlePillarChange(index, "mana", e.target.value)}
+                                        value={pillar.maxMana}
+                                        onChange={(e) => handlePillarChange(index, "maxMana", e.target.value)}
                                     />
                                     <button type="button" onClick={() => removePillar(index)} className={"rpg-button delete-button sm"}>
                                         <TrashIcon className="size-6 text-blue-500 rpg-icon" />

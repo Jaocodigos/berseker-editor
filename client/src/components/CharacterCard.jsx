@@ -47,7 +47,7 @@ export default function CharacterCard({ character, onRefresh }) {
                 <ul className="pillars-list">
                     {pillars.map((p) => (
                         <li key={p.id}>
-                            <strong>{p.nome}</strong> ({p.tipo}) — Mana: {p.mana}
+                            <strong>{p.nome}</strong> ({p.tipo}) — Mana: {p.actualMana ?? p.maxMana ?? "--"}/{p.maxMana ?? "--"}
                         </li>
                     ))}
                 </ul>

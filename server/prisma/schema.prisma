@@ -10,6 +10,8 @@ generator client {
 model Character {
   id       Int      @id @default(autoincrement())
   nome     String
+  maxHp    Int      @default(0) @map("max_hp")
+  actualHp Int      @default(0) @map("actual_hp")
   pillars  Pillar[]  // um personagem pode ter vários pilares (até 3 na lógica da aplicação)
 
   @@map("characters") // renomeia a tabela no banco para "characters"
@@ -19,7 +21,8 @@ model Pillar {
   id          Int       @id @default(autoincrement())
   nome        String
   tipo        String
-  mana        Int
+  maxMana     Int       @default(0) @map("max_mana")
+  actualMana  Int       @default(0) @map("actual_mana")
   character   Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
   characterId Int
   abilities   Ability[]
