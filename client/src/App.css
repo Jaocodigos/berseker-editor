@@ -52,18 +52,71 @@
 
 }
 
-.rpg-nav{
+.rpg-nav {
+  position: sticky;
+  top: 0;
+  z-index: 100;
   width: 100%;
-  height: 90px;
-  background-color: var(--nav-primary-color);
-  color: #ffffff;
+  height: 64px;
   display: flex;
-  justify-content: center;
   align-items: center;
+  justify-content: space-between;
+  padding: 0 2rem;
+  box-sizing: border-box;
+  background: rgba(11, 11, 13, 0.82);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow: 0 1px 24px rgba(0, 0, 0, 0.45);
+}
 
-  a {
-    margin: 0 1em;
-  }
+.rpg-nav-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #f1f5f9;
+  letter-spacing: 0.03em;
+  text-decoration: none;
+  transition: opacity 0.2s ease;
+}
+
+.rpg-nav-brand:hover {
+  opacity: 0.8;
+  color: #f1f5f9;
+}
+
+.rpg-nav-brand-icon {
+  font-size: 1.2rem;
+  filter: drop-shadow(0 0 6px rgba(34, 211, 238, 0.55));
+}
+
+.rpg-nav-links {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.rpg-nav-link {
+  padding: 0.4em 1em;
+  border-radius: 999px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.55);
+  text-decoration: none;
+  transition: color 0.2s ease, background 0.2s ease;
+}
+
+.rpg-nav-link:hover {
+  color: rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.rpg-nav-link.active {
+  color: #22d3ee;
+  background: rgba(34, 211, 238, 0.1);
+  border: 1px solid rgba(34, 211, 238, 0.2);
 }
 
 
