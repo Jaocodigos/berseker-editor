@@ -157,8 +157,8 @@ export default function Characters() {
                                         value={pillar.maxMana}
                                         onChange={(e) => handlePillarChange(index, "maxMana", e.target.value)}
                                     />
-                                    <button type="button" onClick={() => removePillar(index)} className={"rpg-button delete-button sm"}>
-                                        <TrashIcon className="size-6 text-blue-500 rpg-icon" />
+                                    <button type="button" onClick={() => removePillar(index)} className={"rpg-button delete-button sm pillar"}>
+                                        ✖
                                     </button>
                                 </div>
                             ))}
