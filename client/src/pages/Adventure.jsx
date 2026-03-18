@@ -222,9 +222,9 @@ export default function Adventure() {
         <section className="adventure-page">
             <header className="adventure-header">
                 <div className="adventure-title">
-                    <h1>Adventure</h1>
+                    <h1>Aventura</h1>
                     <p className="adventure-subtitle">
-                        Hora da sessao? Adicione personagens para comecar.
+                        Adicione personagens para iniciar e acompanhar seu progresso.
                     </p>
                 </div>
                 <button
@@ -260,7 +260,7 @@ export default function Adventure() {
                             <div className="adventure-card-header">
                                 <div>
                                     <h3>{character.nome || "Sem nome"}</h3>
-                                    <p className="muted">Pronto para a sessao.</p>
+                                    <p className="muted">Pronto para a aventura.</p>
                                 </div>
                                 <div className={`adventure-hp${restHighlightId === character.id ? " rest-highlight" : ""}`}>
                                     <span>HP</span>
@@ -279,7 +279,7 @@ export default function Adventure() {
                                     aria-label="Remover da mesa"
                                     type="button"
                                 >
-                                    <XMarkIcon className="size-6 rpg-icon" />
+                                    ✖
                                 </button>
                             </div>
 
@@ -452,7 +452,7 @@ export default function Adventure() {
                         >
                             Cancelar
                         </button>
-                        <button type="submit" className="rpg-button save-button">
+                        <button type="submit" className="rpg-button save-button" style={{ width: "auto" }}>
                             Adicionar
                         </button>
                     </div>

@@ -242,6 +242,9 @@ button:focus-visible {
 }
 
 .action-section {
+
+
+  margin-top: 10px;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -570,7 +573,7 @@ button:focus-visible {
 
 .adventure-page {
   padding: 2rem 2.5rem 2.5rem;
-  min-height: calc(100vh - 90px);
+  min-height: calc(100vh - 64px);
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
@@ -582,11 +585,11 @@ button:focus-visible {
   align-items: center;
   justify-content: space-between;
   gap: 1.5rem;
-  flex-wrap: wrap;
 }
 
 .adventure-title h1 {
   margin: 0;
+  font-size: 1.8rem;
 }
 
 .adventure-subtitle {
@@ -602,6 +605,7 @@ button:focus-visible {
   display: inline-flex;
   align-items: center;
   gap: 0.6rem;
+  margin: 0;
 }
 
 .adventure-add:disabled {
