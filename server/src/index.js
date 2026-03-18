@@ -260,12 +260,87 @@ app.delete('/api/abilities/:abilityId', async (req, res, next) => {
 
 // Usar habilidade (gastar mana)
 app.post('/api/characters/:id/use-ability', async (req, res, next) => {
-    res.status(501).json({ error: 'Endpoint requer campos e modelos que nao existem no schema atual.' })
+    try {
+        const characterId = Number(req.params.id)
+        const { abilityId } = req.body
+
+        if (!abilityId) {
+            return res.status(400).json({ error: 'abilityId e obrigatorio' })
+        }
+
+        const ability = await prisma.ability.findUnique({
+            where: { id: Number(abilityId) },
+            include: { pillar: true }
+        })
+
+        if (!ability) {
+            return res.status(404).json({ error: 'Habilidade nao encontrada' })
+        }
+
+        if (ability.pillar.characterId !== characterId) {
+            return res.status(403).json({ error: 'Habilidade nao pertence a este personagem' })
+        }
+
+        if (ability.pillar.actualMana < ability.custo) {
+            return res.status(400).json({ error: 'Mana insuficiente' })
+        }
+
+        const updatedPillar = await prisma.pillar.update({
+            where: { id: ability.pillar.id },
+            data: { actualMana: ability.pillar.actualMana - ability.custo }
+        })
+
+        res.json({ pillar: updatedPillar, ability })
+    } catch (e) { next(e) }
 })
 
 // Recuperar mana
 app.post('/api/characters/:id/regain-mana', async (req, res, next) => {
     res.status(501).json({ error: 'Endpoint requer campos e modelos que nao existem no schema atual.' })
+})
+
+// Descanso
+app.post('/api/characters/:id/rest', async (req, res, next) => {
+    try {
+        const characterId = Number(req.params.id)
+        const { type } = req.body
+
+        if (!['short', 'long'].includes(type)) {
+            return res.status(400).json({ error: 'type deve ser "short" ou "long"' })
+        }
+
+        const character = await prisma.character.findUnique({
+            where: { id: characterId },
+            include: { pillars: true }
+        })
+
+        if (!character) {
+            return res.status(404).json({ error: 'Personagem nao encontrado' })
+        }
+
+        const newHp = type === 'long'
+            ? character.maxHp
+            : Math.min(character.maxHp, character.actualHp + Math.floor(character.maxHp / 2))
+
+        const updatedCharacter = await prisma.character.update({
+            where: { id: characterId },
+            data: { actualHp: newHp }
+        })
+
+        const updatedPillars = await Promise.all(
+            character.pillars.map((pillar) => {
+                const newMana = type === 'long'
+                    ? pillar.maxMana
+                    : Math.min(pillar.maxMana, pillar.actualMana + Math.floor(pillar.maxMana / 2))
+                return prisma.pillar.update({
+                    where: { id: pillar.id },
+                    data: { actualMana: newMana }
+                })
+            })
+        )
+
+        res.json({ character: updatedCharacter, pillars: updatedPillars })
+    } catch (e) { next(e) }
 })
 
 // Error logging

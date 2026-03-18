@@ -197,6 +197,45 @@ button:focus-visible {
   color: #ffffff;
 }
 
+.adventure-ability-button {
+  background: rgba(30, 64, 175, 0.25);
+  border: 1px solid rgba(59, 130, 246, 0.55);
+  color: #bfdbfe;
+}
+
+.adventure-ability-button:hover {
+  transform: translateY(-1px);
+  background: rgba(30, 64, 175, 0.45);
+  border-color: rgba(96, 165, 250, 0.85);
+  color: #dbeafe;
+}
+
+.neutral-button {
+  background: rgba(100, 116, 139, 0.18);
+  border: 1px solid rgba(100, 116, 139, 0.5);
+  color: #cbd5e1;
+}
+
+.neutral-button:hover {
+  transform: translateY(-1px);
+  background: rgba(100, 116, 139, 0.35);
+  border-color: rgba(148, 163, 184, 0.8);
+  color: #e2e8f0;
+}
+
+.rest-button {
+  background: rgba(6, 182, 212, 0.15);
+  border: 1px solid rgba(6, 182, 212, 0.55);
+  color: #a5f3fc;
+}
+
+.rest-button:hover {
+  transform: translateY(-1px);
+  background: rgba(6, 182, 212, 0.32);
+  border-color: rgba(34, 211, 238, 0.85);
+  color: #cffafe;
+}
+
 .rpg-button:active {
   transform: translateY(0);
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.24);
@@ -705,6 +744,21 @@ button:focus-visible {
   font-size: 0.9rem;
 }
 
+@keyframes rest-glow {
+  0%   { box-shadow: none; border-color: inherit; }
+  25%  { box-shadow: 0 0 0 3px rgba(74, 222, 128, 0.5); border-color: rgba(74, 222, 128, 0.8); }
+  75%  { box-shadow: 0 0 0 3px rgba(74, 222, 128, 0.5); border-color: rgba(74, 222, 128, 0.8); }
+  100% { box-shadow: none; border-color: inherit; }
+}
+
+.adventure-hp.rest-highlight {
+  animation: rest-glow 1s ease-in-out forwards;
+}
+
+.adventure-pillar.rest-highlight {
+  animation: rest-glow 1s ease-in-out forwards;
+}
+
 .adventure-actions {
   margin-top: auto;
   display: grid;
@@ -720,11 +774,12 @@ button:focus-visible {
   display: flex;
   gap: 0.75rem;
   align-items: center;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
 }
 
 .adventure-damage input {
-  flex: 1 1 140px;
+  flex: 1 1 0;
+  min-width: 0;
   padding: 0.65em 0.75em;
   border-radius: 12px;
   border: 1px solid rgba(255, 255, 255, 0.15);
@@ -742,6 +797,32 @@ button:focus-visible {
   border-color: rgba(56, 189, 248, 0.9);
   box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.25);
   background: rgba(8, 8, 12, 0.9);
+}
+
+.adventure-damage select {
+  flex: 1;
+  padding: 0.65em 0.75em;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(0, 0, 0, 0.35);
+  color: inherit;
+  font-size: 0.95rem;
+  font-family: inherit;
+  box-sizing: border-box;
+  cursor: pointer;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.adventure-damage select:focus {
+  outline: none;
+  border-color: rgba(56, 189, 248, 0.9);
+  box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.25);
+  background: rgba(8, 8, 12, 0.9);
+}
+
+.adventure-damage .rpg-button {
+  flex: 1;
+  white-space: nowrap;
 }
 
 

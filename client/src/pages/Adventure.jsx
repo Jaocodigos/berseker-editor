@@ -12,6 +12,12 @@ export default function Adventure() {
     const [damageTargetId, setDamageTargetId] = useState(null);
     const [damageValue, setDamageValue] = useState("");
     const [damageSavingId, setDamageSavingId] = useState(null);
+    const [abilityTargetId, setAbilityTargetId] = useState(null);
+    const [selectedAbilityId, setSelectedAbilityId] = useState("");
+    const [abilitySavingId, setAbilitySavingId] = useState(null);
+    const [restTargetId, setRestTargetId] = useState(null);
+    const [restSavingId, setRestSavingId] = useState(null);
+    const [restHighlightId, setRestHighlightId] = useState(null);
 
     const availableOptions = useMemo(() => {
         const selectedIds = new Set(characters.map((character) => character.id));
@@ -74,6 +80,106 @@ export default function Adventure() {
     const handleOpenDamage = (characterId) => {
         setDamageTargetId(characterId);
         setDamageValue("");
+        setAbilityTargetId(null);
+        setRestTargetId(null);
+    };
+
+    const handleOpenRest = (characterId) => {
+        setRestTargetId(characterId);
+        setDamageTargetId(null);
+        setAbilityTargetId(null);
+    };
+
+    const handleRest = async (character, type) => {
+        try {
+            setRestSavingId(character.id);
+            const response = await fetch(
+                `http://localhost:3001/api/characters/${character.id}/rest`,
+                {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ type }),
+                }
+            );
+            if (!response.ok) throw new Error("Falha ao descansar.");
+            const { character: updatedChar, pillars: updatedPillars } = await response.json();
+            setCharacters((prev) =>
+                prev.map((entry) =>
+                    entry.id === character.id
+                        ? {
+                              ...entry,
+                              actualHp: updatedChar.actualHp,
+                              pillars: entry.pillars.map((p) => {
+                                  const updated = updatedPillars.find((up) => up.id === p.id);
+                                  return updated ? { ...p, actualMana: updated.actualMana } : p;
+                              }),
+                          }
+                        : entry
+                )
+            );
+            setRestTargetId(null);
+            setRestHighlightId(character.id);
+            setTimeout(() => setRestHighlightId(null), 1000);
+        } catch (err) {
+            console.error(err);
+            alert("Nao foi possivel realizar o descanso.");
+        } finally {
+            setRestSavingId(null);
+        }
+    };
+
+    const handleOpenAbility = (characterId, character) => {
+        setAbilityTargetId(characterId);
+        setDamageTargetId(null);
+        setRestTargetId(null);
+        const allAbilities = (character.pillars || []).flatMap((p) => p.abilities || []);
+        setSelectedAbilityId(allAbilities.length > 0 ? String(allAbilities[0].id) : "");
+    };
+
+    const handleUseAbility = async (character) => {
+        if (!selectedAbilityId) {
+            alert("Selecione uma habilidade.");
+            return;
+        }
+        try {
+            setAbilitySavingId(character.id);
+            const response = await fetch(
+                `http://localhost:3001/api/characters/${character.id}/use-ability`,
+                {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ abilityId: Number(selectedAbilityId) }),
+                }
+            );
+            if (!response.ok) {
+                const err = await response.json();
+                if (response.status === 400 && err.error === "Mana insuficiente") {
+                    alert("Mana insuficiente para usar esta habilidade.");
+                    return;
+                }
+                throw new Error(err.error || "Falha ao usar habilidade.");
+            }
+            const { pillar } = await response.json();
+            setCharacters((prev) =>
+                prev.map((entry) =>
+                    entry.id === character.id
+                        ? {
+                              ...entry,
+                              pillars: entry.pillars.map((p) =>
+                                  p.id === pillar.id ? { ...p, actualMana: pillar.actualMana } : p
+                              ),
+                          }
+                        : entry
+                )
+            );
+            setAbilityTargetId(null);
+            setSelectedAbilityId("");
+        } catch (err) {
+            console.error(err);
+            alert("Nao foi possivel usar a habilidade.");
+        } finally {
+            setAbilitySavingId(null);
+        }
     };
 
     const handleApplyDamage = async (character) => {
@@ -156,7 +262,7 @@ export default function Adventure() {
                                     <h3>{character.nome || "Sem nome"}</h3>
                                     <p className="muted">Pronto para a sessao.</p>
                                 </div>
-                                <div className="adventure-hp">
+                                <div className={`adventure-hp${restHighlightId === character.id ? " rest-highlight" : ""}`}>
                                     <span>HP</span>
                                     <strong>
                                         {character.actualHp ?? "--"}/{character.maxHp ?? "--"}
@@ -185,7 +291,7 @@ export default function Adventure() {
                                     </div>
                                 ) : (
                                     character.pillars.map((pillar) => (
-                                        <div key={pillar.id ?? pillar.nome} className="adventure-pillar">
+                                        <div key={pillar.id ?? pillar.nome} className={`adventure-pillar${restHighlightId === character.id ? " rest-highlight" : ""}`}>
                                             <span className="pillar-name">{pillar.nome}</span>
                                             <span className="pillar-mana">
                                                 {pillar.actualMana ?? pillar.maxMana ?? 0}/{pillar.maxMana ?? 0} Mana
@@ -202,8 +308,18 @@ export default function Adventure() {
                                 >
                                     Receber Dano
                                 </button>
-                                <button className="rpg-button">Usar Habilidade</button>
-                                <button className="rpg-button cancel-button">Descansar</button>
+                                <button
+                                    className="rpg-button adventure-ability-button"
+                                    onClick={() => handleOpenAbility(character.id, character)}
+                                >
+                                    Usar Habilidade
+                                </button>
+                                <button
+                                    className="rpg-button rest-button"
+                                    onClick={() => handleOpenRest(character.id)}
+                                >
+                                    Descansar
+                                </button>
                             </div>
                             {damageTargetId === character.id && (
                                 <div className="adventure-damage">
@@ -215,7 +331,7 @@ export default function Adventure() {
                                         onChange={(event) => setDamageValue(event.target.value)}
                                     />
                                     <button
-                                        className="rpg-button save-button"
+                                        className="rpg-button neutral-button"
                                         onClick={() => handleApplyDamage(character)}
                                         disabled={damageSavingId === character.id}
                                     >
@@ -225,6 +341,74 @@ export default function Adventure() {
                                         className="rpg-button cancel-button"
                                         onClick={() => setDamageTargetId(null)}
                                         disabled={damageSavingId === character.id}
+                                    >
+                                        Cancelar
+                                    </button>
+                                </div>
+                            )}
+                            {abilityTargetId === character.id && (() => {
+                                const allAbilities = (character.pillars || []).flatMap((p) =>
+                                    (p.abilities || []).map((a) => ({
+                                        ...a,
+                                        pillarNome: p.nome,
+                                    }))
+                                );
+                                return (
+                                    <div className="adventure-damage">
+                                        {allAbilities.length === 0 ? (
+                                            <span className="muted">Nenhuma habilidade disponivel.</span>
+                                        ) : (
+                                            <select
+                                                value={selectedAbilityId}
+                                                onChange={(e) => setSelectedAbilityId(e.target.value)}
+                                            >
+                                                {allAbilities.map((a) => (
+                                                    <option key={a.id} value={a.id}>
+                                                        {a.nome} — Custo: {a.custo} ({a.pillarNome})
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        )}
+                                        <button
+                                            className="rpg-button neutral-button"
+                                            onClick={() => handleUseAbility(character)}
+                                            disabled={
+                                                abilitySavingId === character.id ||
+                                                allAbilities.length === 0
+                                            }
+                                        >
+                                            Usar
+                                        </button>
+                                        <button
+                                            className="rpg-button cancel-button"
+                                            onClick={() => setAbilityTargetId(null)}
+                                            disabled={abilitySavingId === character.id}
+                                        >
+                                            Cancelar
+                                        </button>
+                                    </div>
+                                );
+                            })()}
+                            {restTargetId === character.id && (
+                                <div className="adventure-damage">
+                                    <button
+                                        className="rpg-button neutral-button"
+                                        onClick={() => handleRest(character, "short")}
+                                        disabled={restSavingId === character.id}
+                                    >
+                                        Descanso Curto
+                                    </button>
+                                    <button
+                                        className="rpg-button"
+                                        onClick={() => handleRest(character, "long")}
+                                        disabled={restSavingId === character.id}
+                                    >
+                                        Descanso Longo
+                                    </button>
+                                    <button
+                                        className="rpg-button cancel-button"
+                                        onClick={() => setRestTargetId(null)}
+                                        disabled={restSavingId === character.id}
                                     >
                                         Cancelar
                                     </button>
