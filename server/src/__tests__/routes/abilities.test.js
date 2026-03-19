@@ -6,7 +6,7 @@ const { mockPrisma } = vi.hoisted(() => ({
         session: { findUnique: vi.fn(), delete: vi.fn() },
         character: { findMany: vi.fn(), findUnique: vi.fn(), create: vi.fn(), update: vi.fn(), delete: vi.fn() },
         pillar: { update: vi.fn() },
-        ability: { findMany: vi.fn(), findUnique: vi.fn(), create: vi.fn(), delete: vi.fn() },
+        ability: { findMany: vi.fn(), findUnique: vi.fn(), create: vi.fn(), update: vi.fn(), delete: vi.fn() },
     },
 }))
 
@@ -44,6 +44,42 @@ describe('Abilities Routes', () => {
             )
             expect(res.status).toBe(201)
             expect(res.body).toEqual(created)
+        })
+    })
+
+    describe('PUT /api/abilities/:id', () => {
+        it('retorna 400 sem campos obrigatórios', async () => {
+            const res = await withAuth(
+                request(app).put('/api/abilities/1').send({ nome: 'Fireball' })
+            )
+            expect(res.status).toBe(400)
+        })
+
+        it('atualiza habilidade e retorna o objeto atualizado', async () => {
+            const updated = { id: 1, nome: 'Fireball+', dano: '3d6', custo: 6, pillarId: 1, descricao: 'Nova desc' }
+            mockPrisma.ability.update.mockResolvedValue(updated)
+
+            const res = await withAuth(
+                request(app).put('/api/abilities/1').send({ nome: 'Fireball+', dano: '3d6', custo: 6, descricao: 'Nova desc' })
+            )
+
+            expect(res.status).toBe(200)
+            expect(res.body).toEqual(updated)
+            expect(mockPrisma.ability.update).toHaveBeenCalledWith({
+                where: { id: 1 },
+                data: { nome: 'Fireball+', dano: '3d6', custo: 6, descricao: 'Nova desc' }
+            })
+        })
+
+        it('aceita custo igual a zero', async () => {
+            const updated = { id: 1, nome: 'Passiva', dano: '1d4', custo: 0, pillarId: 1, descricao: '' }
+            mockPrisma.ability.update.mockResolvedValue(updated)
+
+            const res = await withAuth(
+                request(app).put('/api/abilities/1').send({ nome: 'Passiva', dano: '1d4', custo: 0 })
+            )
+
+            expect(res.status).toBe(200)
         })
     })
 

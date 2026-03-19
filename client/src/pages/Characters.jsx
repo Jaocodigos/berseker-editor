@@ -162,7 +162,7 @@ export default function Characters() {
                                         <label>Tipo</label>
                                         <input
                                             type="text"
-                                            placeholder="Tipo"
+                                            placeholder="FUOR, ELEMUOR ou MUOR"
                                             value={pillar.type}
                                             onChange={(e) => handlePillarChange(index, "type", e.target.value)}
                                         />
