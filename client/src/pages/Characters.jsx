@@ -3,7 +3,7 @@ import CharacterCard from "../components/CharacterCard";
 import { TrashIcon } from '@heroicons/react/16/solid'
 import {PlusIcon} from "@heroicons/react/16/solid/index.js";
 import { useAuth } from "../context/AuthContext";
-import logger from "../logger";
+import logger, { API_URL } from "../logger";
 
 export default function Characters() {
     const { authHeader } = useAuth()
@@ -19,7 +19,7 @@ export default function Characters() {
 
     const fetchCharacters = async () => {
         try {
-            const res = await fetch("http://localhost:3001/api/characters", {
+            const res = await fetch(`${API_URL}/api/characters`, {
                 headers: { ...authHeader }
             });
             const data = await res.json();
@@ -63,7 +63,7 @@ export default function Characters() {
         logger.info('criando personagem', { nome: personagem.name, pillars: personagem.pillars.length });
 
         try {
-            const response = await fetch("http://localhost:3001/api/characters", {
+            const response = await fetch(`${API_URL}/api/characters`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { PlusIcon, XMarkIcon } from "@heroicons/react/16/solid";
 import Modal from "../components/Modal";
 import { useAuth } from "../context/AuthContext";
-import logger from "../logger";
+import logger, { API_URL } from "../logger";
 
 export default function Adventure() {
     const { authHeader } = useAuth()
@@ -35,7 +35,7 @@ export default function Adventure() {
             setLoading(true);
             setError("");
             try {
-                const response = await fetch("http://localhost:3001/api/characters", {
+                const response = await fetch(`${API_URL}/api/characters`, {
                     signal: controller.signal,
                     headers: { ...authHeader },
                 });
@@ -98,7 +98,7 @@ export default function Adventure() {
         try {
             setRestSavingId(character.id);
             const response = await fetch(
-                `http://localhost:3001/api/characters/${character.id}/rest`,
+                `${API_URL}/api/characters/${character.id}/rest`,
                 {
                     method: "POST",
                     headers: { "Content-Type": "application/json", ...authHeader },
@@ -148,7 +148,7 @@ export default function Adventure() {
         try {
             setAbilitySavingId(character.id);
             const response = await fetch(
-                `http://localhost:3001/api/characters/${character.id}/use-ability`,
+                `${API_URL}/api/characters/${character.id}/use-ability`,
                 {
                     method: "POST",
                     headers: { "Content-Type": "application/json", ...authHeader },
@@ -197,7 +197,7 @@ export default function Adventure() {
 
         try {
             setDamageSavingId(character.id);
-            const response = await fetch(`http://localhost:3001/api/characters/${character.id}`, {
+            const response = await fetch(`${API_URL}/api/characters/${character.id}`, {
                 method: "PATCH",
                 headers: { "Content-Type": "application/json", ...authHeader },
                 body: JSON.stringify({ actualHp: nextHp }),

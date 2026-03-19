@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import Modal from "../components/Modal";
 import {TrashIcon, EyeIcon, PlusIcon} from "@heroicons/react/16/solid/index.js";
 import { useAuth } from "../context/AuthContext";
-import logger from "../logger";
+import logger, { API_URL } from "../logger";
 
 export default function Abilities({ onRefresh }) {
     const { characterId } = useParams();
@@ -33,7 +33,7 @@ export default function Abilities({ onRefresh }) {
 
     async function fetchCharacter() {
         try {
-            const res = await fetch(`http://localhost:3001/api/characters/${characterId}`, {
+            const res = await fetch(`${API_URL}/api/characters/${characterId}`, {
                 headers: { ...authHeader }
             });
             const data = await res.json();
@@ -47,7 +47,7 @@ export default function Abilities({ onRefresh }) {
         try {
             logger.info('criando habilidade', { nome: abilityData.nome, pillarId: abilityData.pillarId });
 
-            const res = await fetch(`http://localhost:3001/api/abilities`, {
+            const res = await fetch(`${API_URL}/api/abilities`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -71,7 +71,7 @@ export default function Abilities({ onRefresh }) {
         try {
             logger.info('deletando habilidade', { abilityId });
 
-            const res = await fetch(`http://localhost:3001/api/abilities/${abilityId}`, {
+            const res = await fetch(`${API_URL}/api/abilities/${abilityId}`, {
                 method: "DELETE",
                 headers: { ...authHeader }
             });

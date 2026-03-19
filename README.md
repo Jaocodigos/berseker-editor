@@ -33,6 +33,7 @@ npm install
 
 ```env
 DATABASE_URL="mysql://root:secret@localhost:3306/rpg_db"
+API_URL="http://localhost:3001 Ou URL do seu backend"
 ADMIN_TOKEN="seu-token-secreto-aqui"
 ```
 
