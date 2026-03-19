@@ -1,35 +1,30 @@
 import { useState } from "react";
 import Modal from "./Modal";
-import { FireIcon, TrashIcon, PencilIcon } from '@heroicons/react/16/solid'
+import { FireIcon, TrashIcon } from '@heroicons/react/16/solid'
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 
 
 export default function CharacterCard({ character, onRefresh }) {
+    const { authHeader } = useAuth()
     const pillars = character.pillars || [];
-
     const navigate = useNavigate();
 
     console.log(`ABILITIES: ${JSON.stringify(pillars)}`)
 
     const [openAbilities, setOpenAbilities] = useState(false);
-
-
-
     const [showDeleteModal, setShowDeleteModal] = useState(false);
-
-    const [openEditAbility, setOpenEditAbility] = useState(false);
-
-
 
     async function deleteCharacter(id) {
         try {
             const res = await fetch(`http://localhost:3001/api/characters/${id}`, {
-                method: "DELETE"
+                method: "DELETE",
+                headers: { ...authHeader }
             });
 
             if (!res.ok) throw new Error("Falha ao deletar personagem");
 
-            return await res.json();
+            return res.status === 204 ? null : await res.json();
         } catch (err) {
             console.error(err);
             throw err;
@@ -38,25 +33,20 @@ export default function CharacterCard({ character, onRefresh }) {
 
 
     return (
-
-        // Card do personagem
-        <div className="character-card">
+        <div className={`character-card${showDeleteModal ? " modal-open" : ""}`}>
             <h3>{character.nome}</h3>
 
             {pillars.length > 0 ? (
                 <ul className="pillars-list">
                     {pillars.map((p) => (
                         <li key={p.id}>
-                            <strong>{p.nome}</strong> ({p.tipo}) — Mana: {p.mana}
+                            <strong>{p.nome}</strong> ({p.tipo}) — Mana: {p.actualMana ?? p.maxMana ?? "--"}/{p.maxMana ?? "--"}
                         </li>
                     ))}
                 </ul>
-
             ) : (
                 <p className="muted">Ainda sem pilares.</p>
             )}
-
-
 
             <div className="action-section">
                 <button className="rpg-button ability-button" onClick={() => navigate(`/characters/${character.id}/abilities`)}>
@@ -67,7 +57,6 @@ export default function CharacterCard({ character, onRefresh }) {
                 </button>
             </div>
 
-            {/* Modal de confirmação de deleção */}
             {showDeleteModal && (
                 <div className="rpg-modal">
                     <div className="modal-body">
@@ -85,7 +74,7 @@ export default function CharacterCard({ character, onRefresh }) {
                                     try {
                                         await deleteCharacter(character.id);
                                         setShowDeleteModal(false);
-                                        onRefresh && onRefresh(); // atualiza a lista no Characters.jsx
+                                        onRefresh && onRefresh();
                                     } catch {
                                         alert("Não foi possível deletar o personagem.");
                                     }
@@ -98,8 +87,6 @@ export default function CharacterCard({ character, onRefresh }) {
                 </div>
             )}
 
-
-            {/*Abrir habilidades*/}
             <Modal
                 title={`Habilidades de ${character.nome}`}
                 open={openAbilities}
@@ -116,16 +103,11 @@ export default function CharacterCard({ character, onRefresh }) {
                                     {ab.descricao && (
                                         <div className="muted">{ab.descricao}</div>
                                     )}
-                                    <button className="rpg-button delete-button sm" onClick={() => handleDeleteAbility(ab.id)}>
-                                        <TrashIcon className="size-6 text-blue-500 rpg-icon" />
-                                    </button>
-
                                 </li>
                             ))}
                         </ul>
                     );
                 })()}
-
             </Modal>
         </div>
     );

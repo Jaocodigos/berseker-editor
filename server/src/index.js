@@ -1,18 +1,80 @@
-require('dotenv').config()
-const express = require('express')
-const cors = require('cors')
-const { PrismaClient } = require('@prisma/client')
+import 'dotenv/config'
+import express from 'express'
+import cors from 'cors'
+import { PrismaClient } from '@prisma/client'
+import { randomUUID } from 'crypto'
+import path from 'path'
+import { fileURLToPath } from 'url'
+
+import logger from './logger.js'
+import authMiddleware from './middleware/auth.js'
+import authRouter from './routes/auth.js'
+import usersRouter from './routes/users.js'
 
 const prisma = new PrismaClient()
 const app = express()
+const isDev = process.env.NODE_ENV !== 'production'
 
-app.use(cors());
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
+
+app.use(cors())
 app.use(express.json())
 
-// Healthcheck
+// Request logging
+app.use((req, res, next) => {
+    const requestId = randomUUID()
+    const start = process.hrtime.bigint()
+    req.requestId = requestId
+
+    res.on('finish', () => {
+        const durationMs = Number(process.hrtime.bigint() - start) / 1e6
+        const status = res.statusCode
+        const level = status >= 500 ? 'error' : status >= 400 ? 'warn' : 'info'
+        logger[level](`${req.method} ${req.originalUrl} ${status}`, {
+            requestId,
+            dur: `${Math.round(durationMs)}ms`,
+            ip: req.ip,
+            user: req.user?.username,
+        })
+    })
+
+    next()
+})
+
+// ================= Rotas Públicas =================
+
 app.get('/api/health', (_, res) => res.json({ ok: true }))
 
+app.post('/api/logs', (req, res) => {
+    const { level, message, data = {} } = req.body
+    const validLevels = ['debug', 'info', 'warn', 'error']
+    const safeLevel = validLevels.includes(level) ? level : 'info'
+    logger[safeLevel](`[client] ${message}`, data)
+    res.status(204).end()
+})
+
+app.use('/api/auth', authRouter)
+
+// ================= Gerenciamento de Usuários (Admin) =================
+
+app.use('/api/users', usersRouter)
+
+// ================= Serve frontend (produção) =================
+
+app.use(express.static(path.join(__dirname, '../../client/dist')))
+
+app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api/')) return next()
+    res.sendFile(path.join(__dirname, '../../client/dist/index.html'))
+})
+
+// ================= Rotas Protegidas (Basic Auth) =================
+
+app.use(authMiddleware)
+
 // ================= Characters =================
+
 app.get("/api/characters", async (req, res, next) => {
     try {
         const list = await prisma.character.findMany({
@@ -34,62 +96,134 @@ app.get('/api/characters/:id', async (req, res, next) => {
 
 app.post('/api/characters', async (req, res, next) => {
     try {
-        const { name, pillars = [] } = req.body;
+        const { name, maxHp, actualHp, hp, pillars = [] } = req.body;
 
-        if (!name) return res.status(400).json({ error: 'name é obrigatório' });
+        if (!name) return res.status(400).json({ error: 'name e obrigatorio' });
 
-        // Cria o personagem com os pilares
+        const resolvedMaxHp = maxHp ?? hp;
+        let maxHpValue = 0;
+        if (resolvedMaxHp !== undefined) {
+            const parsedMaxHp = Number(resolvedMaxHp);
+            if (!Number.isFinite(parsedMaxHp)) {
+                return res.status(400).json({ error: 'maxHp deve ser um numero valido' });
+            }
+            maxHpValue = parsedMaxHp;
+        }
+
+        let actualHpValue = maxHpValue;
+        if (actualHp !== undefined) {
+            const parsedActualHp = Number(actualHp);
+            if (!Number.isFinite(parsedActualHp)) {
+                return res.status(400).json({ error: 'actualHp deve ser um numero valido' });
+            }
+            actualHpValue = parsedActualHp;
+        }
+
+        const pillarPayload = [];
+        for (const p of pillars) {
+            const resolvedMaxMana = p.maxMana ?? p.mana;
+            let maxManaValue = 0;
+            if (resolvedMaxMana !== undefined) {
+                const parsedMaxMana = Number(resolvedMaxMana);
+                if (!Number.isFinite(parsedMaxMana)) {
+                    return res.status(400).json({ error: 'maxMana deve ser um numero valido' });
+                }
+                maxManaValue = parsedMaxMana;
+            }
+
+            let actualManaValue = maxManaValue;
+            if (p.actualMana !== undefined) {
+                const parsedActualMana = Number(p.actualMana);
+                if (!Number.isFinite(parsedActualMana)) {
+                    return res.status(400).json({ error: 'actualMana deve ser um numero valido' });
+                }
+                actualManaValue = parsedActualMana;
+            }
+
+            pillarPayload.push({
+                nome: p.name,
+                tipo: p.type,
+                maxMana: maxManaValue,
+                actualMana: actualManaValue
+            });
+        }
+
         const createdCharacter = await prisma.character.create({
             data: {
                 nome: name,
+                maxHp: maxHpValue,
+                actualHp: actualHpValue,
                 pillars: {
-                    create: pillars.map(p => ({
-                        nome: p.name,
-                        tipo: p.type,
-                        mana: p.mana
-                    }))
+                    create: pillarPayload
                 }
             },
-            include: { pillars: true } // retorna os pilares junto
+            include: { pillars: true }
         });
 
+        logger.info('personagem criado', { id: createdCharacter.id, nome: createdCharacter.nome, requestId: req.requestId })
         res.status(201).json(createdCharacter);
 
     } catch (e) {
-        console.log(`ERRO AO CRIAR PERSONAGEM: ${e.message}`)
         next(e);
     }
 });
 
-// Deletar Personagem
+app.patch('/api/characters/:id', async (req, res, next) => {
+    try {
+        const id = Number(req.params.id)
+        const { name, maxHp, actualHp, hp } = req.body
+        const data = {}
+        if (name) data.nome = name
+        if (maxHp !== undefined || hp !== undefined) {
+            const parsedMaxHp = Number(maxHp ?? hp)
+            if (!Number.isFinite(parsedMaxHp)) {
+                return res.status(400).json({ error: 'maxHp deve ser um numero valido' })
+            }
+            data.maxHp = parsedMaxHp
+            if (actualHp === undefined && hp !== undefined) {
+                data.actualHp = parsedMaxHp
+            }
+        }
+        if (actualHp !== undefined) {
+            const parsedActualHp = Number(actualHp)
+            if (!Number.isFinite(parsedActualHp)) {
+                return res.status(400).json({ error: 'actualHp deve ser um numero valido' })
+            }
+            data.actualHp = parsedActualHp
+        }
+        if (!Object.keys(data).length) {
+            return res.status(400).json({ error: 'name, maxHp ou actualHp sao obrigatorios' })
+        }
+        const updated = await prisma.character.update({
+            where: { id },
+            data
+        })
+        res.json(updated)
+    } catch (e) { next(e) }
+})
+
 app.delete("/api/characters/:id", async (req, res, next) => {
     try {
-        const { id } = req.params;
-
-        const deleted = await prisma.character.delete({
-            where: { id: Number(id) }
-        });
-
-        res.json({ message: "Personagem deletado", deleted });
+        const id = Number(req.params.id)
+        await prisma.character.delete({ where: { id } })
+        logger.info('personagem deletado', { id, requestId: req.requestId })
+        res.status(204).end()
     } catch (e) {
         next(e);
     }
 });
 
+// ================= Abilities =================
 
-// ================= Abilitites  =================
-
-// Listar habilidades
 app.get('/api/abilities', async (req, res, next) => {
     try {
         const list = await prisma.ability.findMany({
-            include: { pillars: { include: { abilities: true } } }
+            include: { pillar: true }
         });
         res.json(list);
     } catch (e) { next(e); }
 });
 
-// Cria habilidade pro usuário
 app.post('/api/abilities', async (req, res, next) => {
     try {
         const { nome, descricao, dano, custo, pillarId } = req.body;
@@ -116,116 +250,139 @@ app.post('/api/abilities', async (req, res, next) => {
     }
 });
 
-
-
-app.patch('/api/characters/:id', async (req, res, next) => {
+app.delete('/api/abilities/:abilityId', async (req, res, next) => {
     try {
-        const id = Number(req.params.id)
-        const { name, clazz, manaMax, manaCurrent } = req.body
-        const updated = await prisma.character.update({
-            where: { id },
-            data: { name, clazz, manaMax, manaCurrent }
-        })
-        res.json(updated)
-    } catch (e) { next(e) }
-})
-
-app.delete('/api/characters/:id', async (req, res, next) => {
-    try {
-        const id = Number(req.params.id)
-        await prisma.character.delete({ where: { id } })
+        const abilityId = Number(req.params.abilityId)
+        await prisma.ability.delete({ where: { id: abilityId } })
         res.status(204).end()
     } catch (e) { next(e) }
 })
 
-// Listar habilidades de um personagem
+// ================= Character Abilities =================
+
 app.get('/api/characters/:id/abilities', async (req, res, next) => {
     try {
         const id = Number(req.params.id)
-        const rels = await prisma.characterAbility.findMany({
-            where: { characterId: id },
-            include: { ability: true }
+        const abilities = await prisma.ability.findMany({
+            where: { pillar: { characterId: id } }
         })
-        res.json(rels.map(r => r.ability))
+        res.json(abilities)
     } catch (e) { next(e) }
 })
 
-// Vincular/remover habilidade
 app.post('/api/characters/:id/abilities/:abilityId', async (req, res, next) => {
-    try {
-        const characterId = Number(req.params.id)
-        const abilityId = Number(req.params.abilityId)
-        await prisma.characterAbility.create({ data: { characterId, abilityId } })
-        res.status(201).json({ ok: true })
-    } catch (e) { next(e) }
+    res.status(501).json({ error: 'Endpoint requer relacionamento many-to-many que nao existe no schema atual.' })
 })
 
-app.delete('/api/characters/:id/abilities/:abilityId', async (req, res, next) => {
-    try {
-        const characterId = Number(req.params.id)
-        const abilityId = Number(req.params.abilityId)
-        await prisma.characterAbility.delete({ where: { characterId_abilityId: { characterId, abilityId } } })
-        res.status(204).end()
-    } catch (e) { next(e) }
-})
-
-// Usar habilidade (gastar mana)
 app.post('/api/characters/:id/use-ability', async (req, res, next) => {
-    const characterId = Number(req.params.id)
-    const { abilityId } = req.body
-    if (!abilityId) return res.status(400).json({ error: 'abilityId é obrigatório' })
-
     try {
-        const ability = await prisma.ability.findUnique({ where: { id: Number(abilityId) } })
-        if (!ability) return res.status(404).json({ error: 'Habilidade não encontrada' })
+        const characterId = Number(req.params.id)
+        const { abilityId } = req.body
 
-        const hasLink = await prisma.characterAbility.findUnique({
-            where: { characterId_abilityId: { characterId, abilityId: ability.id } }
-        })
-        if (!hasLink) return res.status(400).json({ error: 'Personagem não possui esta habilidade' })
+        if (!abilityId) {
+            return res.status(400).json({ error: 'abilityId e obrigatorio' })
+        }
 
-        const result = await prisma.$transaction(async (tx) => {
-            const char = await tx.character.findUnique({ where: { id: characterId } })
-            if (!char) throw new Error('Personagem não encontrado')
-            if (char.manaCurrent < ability.manaCost) {
-                return { error: 'Mana insuficiente', character: char }
-            }
-
-            const updated = await tx.character.update({
-                where: { id: characterId },
-                data: { manaCurrent: char.manaCurrent - ability.manaCost }
-            })
-
-            await tx.manaLog.create({
-                data: { characterId, abilityId: ability.id, change: -ability.manaCost }
-            })
-
-            return { character: updated }
+        const ability = await prisma.ability.findUnique({
+            where: { id: Number(abilityId) },
+            include: { pillar: true }
         })
 
-        if (result.error) return res.status(400).json(result)
-        res.json(result.character)
+        if (!ability) {
+            return res.status(404).json({ error: 'Habilidade nao encontrada' })
+        }
+
+        if (ability.pillar.characterId !== characterId) {
+            return res.status(403).json({ error: 'Habilidade nao pertence a este personagem' })
+        }
+
+        if (ability.pillar.actualMana < ability.custo) {
+            return res.status(400).json({ error: 'Mana insuficiente' })
+        }
+
+        const updatedPillar = await prisma.pillar.update({
+            where: { id: ability.pillar.id },
+            data: { actualMana: ability.pillar.actualMana - ability.custo }
+        })
+
+        logger.info('habilidade usada', {
+            characterId,
+            abilityId: ability.id,
+            nome: ability.nome,
+            custo: ability.custo,
+            manaRestante: updatedPillar.actualMana,
+            requestId: req.requestId,
+        })
+        res.json({ pillar: updatedPillar, ability })
     } catch (e) { next(e) }
 })
 
-// Recuperar mana
 app.post('/api/characters/:id/regain-mana', async (req, res, next) => {
-    const characterId = Number(req.params.id)
-    const { amount = 10 } = req.body
+    res.status(501).json({ error: 'Endpoint requer campos e modelos que nao existem no schema atual.' })
+})
+
+app.post('/api/characters/:id/rest', async (req, res, next) => {
     try {
-        const updated = await prisma.$transaction(async (tx) => {
-            const c = await tx.character.findUnique({ where: { id: characterId } })
-            if (!c) throw new Error('Personagem não encontrado')
-            const newMana = Math.min(c.manaCurrent + Number(amount), c.manaMax)
-            const u = await tx.character.update({ where: { id: characterId }, data: { manaCurrent: newMana } })
-            await tx.manaLog.create({ data: { characterId, abilityId: 0, change: Number(amount) } })
-            return u
+        const characterId = Number(req.params.id)
+        const { type } = req.body
+
+        if (!['short', 'long'].includes(type)) {
+            return res.status(400).json({ error: 'type deve ser "short" ou "long"' })
+        }
+
+        const character = await prisma.character.findUnique({
+            where: { id: characterId },
+            include: { pillars: true }
         })
-        res.json(updated)
+
+        if (!character) {
+            return res.status(404).json({ error: 'Personagem nao encontrado' })
+        }
+
+        const newHp = type === 'long'
+            ? character.maxHp
+            : Math.min(character.maxHp, character.actualHp + Math.floor(character.maxHp / 2))
+
+        const updatedCharacter = await prisma.character.update({
+            where: { id: characterId },
+            data: { actualHp: newHp }
+        })
+
+        const updatedPillars = await Promise.all(
+            character.pillars.map((pillar) => {
+                const newMana = type === 'long'
+                    ? pillar.maxMana
+                    : Math.min(pillar.maxMana, pillar.actualMana + Math.floor(pillar.maxMana / 2))
+                return prisma.pillar.update({
+                    where: { id: pillar.id },
+                    data: { actualMana: newMana }
+                })
+            })
+        )
+
+        logger.info('descanso realizado', {
+            characterId,
+            type,
+            hpAntes: character.actualHp,
+            hpDepois: updatedCharacter.actualHp,
+            requestId: req.requestId,
+        })
+        res.json({ character: updatedCharacter, pillars: updatedPillars })
     } catch (e) { next(e) }
 })
 
+// ================= Error Handler =================
 
-app.listen( 3001, () => {
-    console.log(`API rodando em http://localhost:3001`);
-});
+app.use((err, req, res, next) => {
+    logger.error(err?.message || 'Unhandled error', {
+        requestId: req.requestId,
+        method: req.method,
+        path: req.originalUrl,
+        stack: isDev ? err?.stack?.split('\n')[1]?.trim() : undefined,
+    })
+    res.status(500).json({ error: 'Erro interno do servidor' })
+})
+
+app.listen(3001, () => {
+    logger.info('servidor iniciado', { port: 3001, env: process.env.NODE_ENV || 'development' })
+})
