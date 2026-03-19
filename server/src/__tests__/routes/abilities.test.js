@@ -1,29 +1,31 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import request from 'supertest'
 
-const { mockPrisma, mockBcrypt } = vi.hoisted(() => ({
+const { mockPrisma } = vi.hoisted(() => ({
     mockPrisma: {
-        user: { findUnique: vi.fn() },
+        session: { findUnique: vi.fn(), delete: vi.fn() },
         character: { findMany: vi.fn(), findUnique: vi.fn(), create: vi.fn(), update: vi.fn(), delete: vi.fn() },
         pillar: { update: vi.fn() },
         ability: { findMany: vi.fn(), findUnique: vi.fn(), create: vi.fn(), delete: vi.fn() },
     },
-    mockBcrypt: { compare: vi.fn(), hash: vi.fn() },
 }))
 
 vi.mock('@prisma/client', () => ({ PrismaClient: vi.fn(() => mockPrisma) }))
-vi.mock('bcryptjs', () => ({ default: mockBcrypt }))
 
 import { app } from '../../index.js'
 
-const AUTH = `Basic ${Buffer.from('user:pass').toString('base64')}`
-const withAuth = (req) => req.set('Authorization', AUTH)
+const VALID_TOKEN = 'test-session-token'
+const withAuth = (req) => req.set('Cookie', `session=${VALID_TOKEN}`)
 
 describe('Abilities Routes', () => {
     beforeEach(() => {
         vi.clearAllMocks()
-        mockPrisma.user.findUnique.mockResolvedValue({ id: 1, username: 'user', passwordHash: 'h' })
-        mockBcrypt.compare.mockResolvedValue(true)
+        mockPrisma.session.findUnique.mockResolvedValue({
+            token: VALID_TOKEN,
+            userId: 1,
+            expiresAt: new Date(Date.now() + 3_600_000),
+            user: { id: 1, username: 'user' },
+        })
     })
 
     describe('POST /api/abilities', () => {

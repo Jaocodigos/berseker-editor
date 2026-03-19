@@ -13,6 +13,7 @@ const mockCharacter = {
     nome: 'Aragorn',
     maxHp: 100,
     actualHp: 100,
+    xp: 50,
     pillars: [
         {
             id: 1, nome: 'Ranger', tipo: 'Físico', maxMana: 20, actualMana: 20,
@@ -129,6 +130,45 @@ describe('Adventure Page', () => {
         await waitFor(() => expect(screen.getByText(/42/)).toBeInTheDocument())
 
         vi.useRealTimers()
+    })
+
+    it('exibe XP do personagem no card', async () => {
+        global.fetch = vi.fn().mockResolvedValue({
+            ok: true,
+            json: () => Promise.resolve([mockCharacter]),
+        })
+        render(<MemoryRouter><Adventure /></MemoryRouter>)
+        await waitFor(() => expect(screen.queryByText(/Carregando/i)).not.toBeInTheDocument())
+
+        await addCharacterToSession()
+
+        expect(screen.getByText('XP')).toBeInTheDocument()
+        expect(screen.getByText('50')).toBeInTheDocument()
+    })
+
+    it('adiciona XP ao personagem via botão + XP', async () => {
+        global.fetch = vi.fn()
+            .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve([mockCharacter]) })
+            .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ ...mockCharacter, xp: 75 }) })
+
+        render(<MemoryRouter><Adventure /></MemoryRouter>)
+        await waitFor(() => expect(screen.queryByText(/Carregando/i)).not.toBeInTheDocument())
+
+        await addCharacterToSession()
+
+        await userEvent.click(screen.getByRole('button', { name: /\+ XP/i }))
+        await userEvent.type(screen.getByPlaceholderText('XP a adicionar'), '25')
+        // Use last "Adicionar" button (XP panel); the header button is disabled
+        const addBtns = screen.getAllByRole('button', { name: /Adicionar/i })
+        await userEvent.click(addBtns[addBtns.length - 1])
+
+        await waitFor(() => {
+            const calls = vi.mocked(fetch).mock.calls
+            const patchCall = calls.find(([, opts]) => opts?.method === 'PATCH')
+            expect(patchCall).toBeDefined()
+            const body = JSON.parse(patchCall[1].body)
+            expect(body.xp).toBe(75) // 50 + 25
+        })
     })
 
     it('usa habilidade e envia abilityId correto', async () => {

@@ -11,6 +11,7 @@ export default function Characters() {
     const [pillars, setPillars] = useState([]);
     const [characterName, setCharacterName] = useState("");
     const [characterMaxHp, setCharacterMaxHp] = useState("");
+    const [characterXp, setCharacterXp] = useState("");
     const [characters, setCharacters] = useState([]);
 
     useEffect(() => {
@@ -52,6 +53,7 @@ export default function Characters() {
             name: characterName,
             maxHp: characterMaxHp === "" ? undefined : Number(characterMaxHp),
             actualHp: characterMaxHp === "" ? undefined : Number(characterMaxHp),
+            xp: characterXp === "" ? 0 : Number(characterXp),
             pillars: pillars.map(p => ({
                 name: p.name,
                 type: p.type,
@@ -82,6 +84,7 @@ export default function Characters() {
             e.target.reset();
             setPillars([]);
             setCharacterMaxHp("");
+            setCharacterXp("");
             setShowModal(false);
 
             await fetchCharacters();
@@ -116,45 +119,74 @@ export default function Characters() {
                         <h2>Adicionar Personagem</h2>
 
                         <form onSubmit={handleSubmit}>
-                            <input type="text" placeholder="Nome do personagem" value={characterName}
-                                onChange={(e) => setCharacterName(e.target.value)}/>
-                            <input
-                                type="number"
-                                placeholder="HP"
-                                min="0"
-                                value={characterMaxHp}
-                                onChange={(e) => setCharacterMaxHp(e.target.value)}
-                            />
-
-                            {pillars.map((pillar, index) => (
-                                <div key={index} className={"pillar-form"}>
-                                    <input
-                                        type="text"
-                                        placeholder="Nome do pilar"
-                                        value={pillar.name}
-                                        onChange={(e) => handlePillarChange(index, "name", e.target.value)}
-                                    />
-                                    <input
-                                        type="text"
-                                        placeholder="Tipo"
-                                        value={pillar.type}
-                                        onChange={(e) => handlePillarChange(index, "type", e.target.value)}
-                                    />
+                            <div className="form-field">
+                                <label>Nome</label>
+                                <input type="text" placeholder="Nome do personagem" value={characterName}
+                                    onChange={(e) => setCharacterName(e.target.value)}/>
+                            </div>
+                            <div className="form-row">
+                                <div className="form-field">
+                                    <label>HP</label>
                                     <input
                                         type="number"
-                                        placeholder="Mana"
-                                        value={pillar.maxMana}
-                                        onChange={(e) => handlePillarChange(index, "maxMana", e.target.value)}
+                                        placeholder="HP máximo"
+                                        min="0"
+                                        value={characterMaxHp}
+                                        onChange={(e) => setCharacterMaxHp(e.target.value)}
                                     />
-                                    <button type="button" onClick={() => removePillar(index)} className={"rpg-button delete-button sm pillar"}>
+                                </div>
+                                <div className="form-field">
+                                    <label>XP inicial</label>
+                                    <input
+                                        type="number"
+                                        placeholder="XP inicial"
+                                        min="0"
+                                        value={characterXp}
+                                        onChange={(e) => setCharacterXp(e.target.value)}
+                                    />
+                                </div>
+                            </div>
+
+                            {pillars.map((pillar, index) => (
+                                <div key={index} className="pillar-form">
+                                    <div className="form-field">
+                                        <label>Nome do pilar</label>
+                                        <input
+                                            type="text"
+                                            placeholder="Nome"
+                                            value={pillar.name}
+                                            onChange={(e) => handlePillarChange(index, "name", e.target.value)}
+                                        />
+                                    </div>
+                                    <div className="form-field">
+                                        <label>Tipo</label>
+                                        <input
+                                            type="text"
+                                            placeholder="Tipo"
+                                            value={pillar.type}
+                                            onChange={(e) => handlePillarChange(index, "type", e.target.value)}
+                                        />
+                                    </div>
+                                    <div className="form-field">
+                                        <label>Mana</label>
+                                        <input
+                                            type="number"
+                                            placeholder="Mana máxima"
+                                            value={pillar.maxMana}
+                                            onChange={(e) => handlePillarChange(index, "maxMana", e.target.value)}
+                                        />
+                                    </div>
+                                    <button type="button" onClick={() => removePillar(index)} className="rpg-button delete-button sm pillar">
                                         ✖
                                     </button>
                                 </div>
                             ))}
 
-                            <button type="button" onClick={addPillar} className={"rpg-button character-button"}>
-                                + Pilar
-                            </button>
+                            {pillars.length < 3 && (
+                                <button type="button" onClick={addPillar} className="rpg-button character-button">
+                                    + Pilar
+                                </button>
+                            )}
 
                             <button type="submit" className={"rpg-button save-button"} style={{ marginTop: "1rem" }}>
                                 Salvar

@@ -9,8 +9,8 @@ vi.mock('../../context/AuthContext', () => ({
 
 import { useAuth } from '../../context/AuthContext'
 
-function renderWithRouter(credentials) {
-    useAuth.mockReturnValue({ credentials })
+function renderWithRouter(credentials, loading = false) {
+    useAuth.mockReturnValue({ credentials, loading })
     render(
         <MemoryRouter initialEntries={['/protected']}>
             <Routes>
@@ -30,7 +30,7 @@ function renderWithRouter(credentials) {
 
 describe('ProtectedRoute', () => {
     it('renderiza children quando há credentials', () => {
-        renderWithRouter('dXNlcjpwYXNz')
+        renderWithRouter({ id: 1, username: 'user' })
         expect(screen.getByText('Conteúdo protegido')).toBeInTheDocument()
         expect(screen.queryByText('Página de login')).not.toBeInTheDocument()
     })
@@ -41,9 +41,9 @@ describe('ProtectedRoute', () => {
         expect(screen.getByText('Página de login')).toBeInTheDocument()
     })
 
-    it('redireciona para /login quando credentials é string vazia', () => {
-        renderWithRouter('')
+    it('não renderiza nada durante o loading (evita flash do login)', () => {
+        renderWithRouter(null, true)
         expect(screen.queryByText('Conteúdo protegido')).not.toBeInTheDocument()
-        expect(screen.getByText('Página de login')).toBeInTheDocument()
+        expect(screen.queryByText('Página de login')).not.toBeInTheDocument()
     })
 })

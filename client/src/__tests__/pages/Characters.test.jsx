@@ -58,7 +58,7 @@ describe('Characters Page', () => {
         await userEvent.click(screen.getByRole('button'))
 
         await userEvent.type(screen.getByPlaceholderText('Nome do personagem'), 'Gandalf')
-        await userEvent.type(screen.getByPlaceholderText('HP'), '120')
+        await userEvent.type(screen.getByPlaceholderText('HP máximo'), '120')
         await userEvent.click(screen.getByText('Salvar'))
 
         await waitFor(() => {

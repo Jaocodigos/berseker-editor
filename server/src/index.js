@@ -3,6 +3,7 @@ dotenv.config({ override: false })
 
 import express from 'express'
 import cors from 'cors'
+import cookieParser from 'cookie-parser'
 import { PrismaClient } from '@prisma/client'
 import { randomUUID } from 'crypto'
 import path from 'path'
@@ -20,8 +21,9 @@ const isDev = process.env.NODE_ENV !== 'production'
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
-app.use(cors())
+app.use(cors({ origin: true, credentials: true }))
 app.use(express.json())
+app.use(cookieParser())
 
 // Request logging
 app.use((req, res, next) => {
@@ -98,9 +100,13 @@ app.get('/api/characters/:id', async (req, res, next) => {
 
 app.post('/api/characters', async (req, res, next) => {
     try {
-        const { name, maxHp, actualHp, hp, pillars = [] } = req.body;
+        const { name, maxHp, actualHp, hp, pillars = [], xp = 0 } = req.body;
 
         if (!name) return res.status(400).json({ error: 'name e obrigatorio' });
+
+        if (pillars.length > 3) {
+            return res.status(400).json({ error: 'um personagem pode ter no maximo 3 pilares' });
+        }
 
         const resolvedMaxHp = maxHp ?? hp;
         let maxHpValue = 0;
@@ -119,6 +125,11 @@ app.post('/api/characters', async (req, res, next) => {
                 return res.status(400).json({ error: 'actualHp deve ser um numero valido' });
             }
             actualHpValue = parsedActualHp;
+        }
+
+        const xpValue = Number(xp);
+        if (!Number.isFinite(xpValue)) {
+            return res.status(400).json({ error: 'xp deve ser um numero valido' });
         }
 
         const pillarPayload = [];
@@ -155,6 +166,7 @@ app.post('/api/characters', async (req, res, next) => {
                 nome: name,
                 maxHp: maxHpValue,
                 actualHp: actualHpValue,
+                xp: xpValue,
                 pillars: {
                     create: pillarPayload
                 }
@@ -173,7 +185,7 @@ app.post('/api/characters', async (req, res, next) => {
 app.patch('/api/characters/:id', async (req, res, next) => {
     try {
         const id = Number(req.params.id)
-        const { name, maxHp, actualHp, hp } = req.body
+        const { name, maxHp, actualHp, hp, xp } = req.body
         const data = {}
         if (name) data.nome = name
         if (maxHp !== undefined || hp !== undefined) {
@@ -193,8 +205,15 @@ app.patch('/api/characters/:id', async (req, res, next) => {
             }
             data.actualHp = parsedActualHp
         }
+        if (xp !== undefined) {
+            const parsedXp = Number(xp)
+            if (!Number.isFinite(parsedXp)) {
+                return res.status(400).json({ error: 'xp deve ser um numero valido' })
+            }
+            data.xp = parsedXp
+        }
         if (!Object.keys(data).length) {
-            return res.status(400).json({ error: 'name, maxHp ou actualHp sao obrigatorios' })
+            return res.status(400).json({ error: 'name, maxHp, actualHp ou xp sao obrigatorios' })
         }
         const updated = await prisma.character.update({
             where: { id },
@@ -256,6 +275,56 @@ app.delete('/api/abilities/:abilityId', async (req, res, next) => {
     try {
         const abilityId = Number(req.params.abilityId)
         await prisma.ability.delete({ where: { id: abilityId } })
+        res.status(204).end()
+    } catch (e) { next(e) }
+})
+
+// ================= Pillars =================
+
+app.patch('/api/pillars/:id', async (req, res, next) => {
+    try {
+        const id = Number(req.params.id)
+        const { nome, tipo, maxMana, actualMana } = req.body
+        const data = {}
+        if (nome !== undefined) data.nome = nome
+        if (tipo !== undefined) data.tipo = tipo
+        if (maxMana !== undefined) {
+            const parsed = Number(maxMana)
+            if (!Number.isFinite(parsed)) return res.status(400).json({ error: 'maxMana deve ser um numero valido' })
+            data.maxMana = parsed
+        }
+        if (actualMana !== undefined) {
+            const parsed = Number(actualMana)
+            if (!Number.isFinite(parsed)) return res.status(400).json({ error: 'actualMana deve ser um numero valido' })
+            data.actualMana = parsed
+        }
+        if (!Object.keys(data).length) return res.status(400).json({ error: 'Nenhum campo fornecido' })
+        const updated = await prisma.pillar.update({ where: { id }, data })
+        res.json(updated)
+    } catch (e) { next(e) }
+})
+
+app.post('/api/characters/:id/pillars', async (req, res, next) => {
+    try {
+        const characterId = Number(req.params.id)
+        const { name, type, maxMana = 0, actualMana } = req.body
+        if (!name || !type) return res.status(400).json({ error: 'name e type sao obrigatorios' })
+        const existingCount = await prisma.pillar.count({ where: { characterId } })
+        if (existingCount >= 3) return res.status(400).json({ error: 'um personagem pode ter no maximo 3 pilares' })
+        const maxManaValue = Number(maxMana)
+        if (!Number.isFinite(maxManaValue)) return res.status(400).json({ error: 'maxMana deve ser um numero valido' })
+        const actualManaValue = actualMana !== undefined ? Number(actualMana) : maxManaValue
+        const created = await prisma.pillar.create({
+            data: { nome: name, tipo: type, maxMana: maxManaValue, actualMana: actualManaValue, characterId }
+        })
+        res.status(201).json(created)
+    } catch (e) { next(e) }
+})
+
+app.delete('/api/pillars/:id', async (req, res, next) => {
+    try {
+        const id = Number(req.params.id)
+        await prisma.pillar.delete({ where: { id } })
         res.status(204).end()
     } catch (e) { next(e) }
 })
