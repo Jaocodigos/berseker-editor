@@ -34,7 +34,7 @@ model Pillar {
 model Ability {
   id       Int     @id @default(autoincrement())
   nome     String
-  descricao String
+  descricao String @db.Text
   dano     String
   custo    Int
   pillar   Pillar @relation(fields: [pillarId], references: [id], onDelete: Cascade)

@@ -1,7 +1,7 @@
 import { useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
 import Modal from "../components/Modal";
-import {TrashIcon, EyeIcon, PlusIcon} from "@heroicons/react/16/solid/index.js";
+import {TrashIcon, EyeIcon, PlusIcon, PencilSquareIcon} from "@heroicons/react/16/solid/index.js";
 import { useAuth } from "../context/AuthContext";
 import logger, { API_URL } from "../logger";
 
@@ -15,6 +15,7 @@ export default function Abilities({ onRefresh }) {
 
     const [showDescription, setShowDescription] = useState(false);
     const [openAddAbility, setOpenAddAbility] = useState(false);
+    const [editingAbility, setEditingAbility] = useState(null);
 
     useEffect(() => {
         fetchCharacter();
@@ -63,6 +64,30 @@ export default function Abilities({ onRefresh }) {
             return created;
         } catch (err) {
             logger.error('erro ao criar habilidade', { message: err.message });
+            throw err;
+        }
+    }
+
+    async function updateAbility(abilityId, abilityData) {
+        try {
+            logger.info('atualizando habilidade', { abilityId });
+
+            const res = await fetch(`${API_URL}/api/abilities/${abilityId}`, {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json",
+                    ...authHeader
+                },
+                body: JSON.stringify(abilityData)
+            });
+
+            if (!res.ok) throw new Error("Erro ao atualizar habilidade");
+
+            const updated = await res.json();
+            logger.info('habilidade atualizada', { id: updated.id });
+            return updated;
+        } catch (err) {
+            logger.error('erro ao atualizar habilidade', { abilityId, message: err.message });
             throw err;
         }
     }
@@ -123,6 +148,16 @@ export default function Abilities({ onRefresh }) {
                                     <button
                                         onClick={() => {
                                             setOpenDropdownId(null);
+                                            setEditingAbility(ability);
+                                        }}
+                                    >
+                                        <PencilSquareIcon className="size-6 text-blue-500 rpg-icon" /> Editar
+                                    </button>
+                                </div>
+                                <div className="dropdown-item">
+                                    <button
+                                        onClick={() => {
+                                            setOpenDropdownId(null);
                                             deleteAbility(ability.id);
                                         }}
                                     >
@@ -154,12 +189,13 @@ export default function Abilities({ onRefresh }) {
                     onSubmit={async (e) => {
                         e.preventDefault();
 
+                        const fd = new FormData(e.target);
                         const ability = {
-                            nome: e.target.nome.value,
-                            descricao: e.target.descricao.value,
-                            dano: e.target.dano.value,
-                            custo: Number(e.target.custo.value),
-                            pillarId: Number(e.target.pillarId.value)
+                            nome: fd.get('nome'),
+                            descricao: fd.get('descricao'),
+                            dano: fd.get('dano'),
+                            custo: Number(fd.get('custo')),
+                            pillarId: Number(fd.get('pillarId'))
                         };
 
                         try {
@@ -237,6 +273,58 @@ export default function Abilities({ onRefresh }) {
                         <p><strong>Descrição:</strong></p>
                         <p>{selectedAbility.descricao || "Sem descrição"}</p>
                     </>
+                )}
+            </Modal>
+            <Modal
+                title="Editar Habilidade"
+                open={!!editingAbility}
+                onClose={() => setEditingAbility(null)}
+            >
+                {editingAbility && (
+                    <form
+                        onSubmit={async (e) => {
+                            e.preventDefault();
+
+                            const fd = new FormData(e.target);
+                            const abilityData = {
+                                nome: fd.get('nome'),
+                                descricao: fd.get('descricao'),
+                                dano: fd.get('dano'),
+                                custo: Number(fd.get('custo'))
+                            };
+
+                            try {
+                                await updateAbility(editingAbility.id, abilityData);
+                                await fetchCharacter();
+                                setEditingAbility(null);
+                                onRefresh && onRefresh();
+                            } catch {
+                                alert("Não foi possível atualizar a habilidade.");
+                            }
+                        }}
+                    >
+                        <div className="form-field">
+                            <label>Nome</label>
+                            <input name="nome" type="text" defaultValue={editingAbility.nome} required />
+                        </div>
+                        <div className="form-row">
+                            <div className="form-field">
+                                <label>Dano</label>
+                                <input name="dano" type="text" defaultValue={editingAbility.dano} required />
+                            </div>
+                            <div className="form-field">
+                                <label>Custo de mana</label>
+                                <input name="custo" type="number" defaultValue={editingAbility.custo} required />
+                            </div>
+                        </div>
+                        <div className="form-field">
+                            <label>Descrição</label>
+                            <textarea name="descricao" defaultValue={editingAbility.descricao} />
+                        </div>
+                        <button type="submit" className="rpg-button save-button">
+                            Salvar
+                        </button>
+                    </form>
                 )}
             </Modal>
         </div>

@@ -263,7 +263,7 @@ export default function CharacterCard({ character, onRefresh }) {
                                     <label>Tipo</label>
                                     <input
                                         type="text"
-                                        placeholder="Tipo"
+                                        placeholder="FUOR, ELEMUOR ou MUOR"
                                         value={pillar.tipo}
                                         onChange={(e) => updateEditPillar(index, 'tipo', e.target.value)}
                                     />

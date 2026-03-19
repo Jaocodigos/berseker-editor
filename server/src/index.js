@@ -271,6 +271,24 @@ app.post('/api/abilities', async (req, res, next) => {
     }
 });
 
+app.put('/api/abilities/:abilityId', async (req, res, next) => {
+    try {
+        const abilityId = Number(req.params.abilityId)
+        const { nome, descricao, dano, custo } = req.body
+
+        if (!nome || !dano || custo === undefined || custo === null) {
+            return res.status(400).json({ error: 'Todos os campos são obrigatórios.' })
+        }
+
+        const updated = await prisma.ability.update({
+            where: { id: abilityId },
+            data: { nome, descricao, dano, custo }
+        })
+
+        res.json(updated)
+    } catch (e) { next(e) }
+})
+
 app.delete('/api/abilities/:abilityId', async (req, res, next) => {
     try {
         const abilityId = Number(req.params.abilityId)
