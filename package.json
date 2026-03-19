@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "scripts": {
     "build": "npm install --prefix client && npm install --prefix server && npm run build --prefix client",
-    "migrate": "cd server && ./node_modules/.bin/prisma migrate deploy",
+    "migrate": "cd server && DATABASE_URL=$DATABASE_URL ./node_modules/.bin/prisma migrate deploy",
     "start": "node server/src/index.js"
   }
 }
