@@ -1,5 +1,5 @@
 
-export const API_URL = import.meta.env.API_URL || 'http://localhost:3001'
+export const API_URL = import.meta.env.VITE_SERVER_URL || ''
 
 function send(level, message, data = {}) {
     fetch(`${API_URL}/api/logs`, {
