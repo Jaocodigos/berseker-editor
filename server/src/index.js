@@ -1,11 +1,31 @@
-require('dotenv').config()
+import 'dotenv/config';
 const express = require('express')
 const cors = require('cors')
 const { PrismaClient } = require('@prisma/client')
 const { randomUUID } = require('crypto')
 
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const logger = require('./logger')
+const isDev = process.env.NODE_ENV !== 'production'
+const authMiddleware = require('./middleware/auth')
+const authRouter = require('./routes/auth')
+const usersRouter = require('./routes/users')
+
 const prisma = new PrismaClient()
 const app = express()
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Serve os arquivos buildados do Vite
+app.use(express.static(path.join(__dirname, '../../client/dist')));
+
+// Fallback para o React Router funcionar
+app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, '../../client/dist/index.html'));
+});
 
 app.use(cors());
 app.use(express.json())
@@ -18,25 +38,43 @@ app.use((req, res, next) => {
 
     res.on('finish', () => {
         const durationMs = Number(process.hrtime.bigint() - start) / 1e6
-        const log = {
-            level: 'info',
+        const status = res.statusCode
+        const level = status >= 500 ? 'error' : status >= 400 ? 'warn' : 'info'
+        logger[level](`${req.method} ${req.originalUrl} ${status}`, {
             requestId,
-            method: req.method,
-            path: req.originalUrl,
-            status: res.statusCode,
-            duration_ms: Math.round(durationMs),
+            dur: `${Math.round(durationMs)}ms`,
             ip: req.ip,
-        }
-        console.log(JSON.stringify(log))
+            user: req.user?.username,
+        })
     })
 
     next()
 })
 
-// Healthcheck
+// ================= Rotas Públicas =================
+
 app.get('/api/health', (_, res) => res.json({ ok: true }))
 
+app.post('/api/logs', (req, res) => {
+    const { level, message, data = {} } = req.body
+    const validLevels = ['debug', 'info', 'warn', 'error']
+    const safeLevel = validLevels.includes(level) ? level : 'info'
+    logger[safeLevel](`[client] ${message}`, data)
+    res.status(204).end()
+})
+
+app.use('/api/auth', authRouter)
+
+// ================= Gerenciamento de Usuários (Admin) =================
+
+app.use('/api/users', usersRouter)
+
+// ================= Rotas Protegidas (Basic Auth) =================
+
+app.use(authMiddleware)
+
 // ================= Characters =================
+
 app.get("/api/characters", async (req, res, next) => {
     try {
         const list = await prisma.character.findMany({
@@ -110,7 +148,6 @@ app.post('/api/characters', async (req, res, next) => {
             });
         }
 
-        // Cria o personagem com os pilares
         const createdCharacter = await prisma.character.create({
             data: {
                 nome: name,
@@ -120,73 +157,16 @@ app.post('/api/characters', async (req, res, next) => {
                     create: pillarPayload
                 }
             },
-            include: { pillars: true } // retorna os pilares junto
+            include: { pillars: true }
         });
 
+        logger.info('personagem criado', { id: createdCharacter.id, nome: createdCharacter.nome, requestId: req.requestId })
         res.status(201).json(createdCharacter);
 
     } catch (e) {
-        console.log(`ERRO AO CRIAR PERSONAGEM: ${e.message}`)
         next(e);
     }
 });
-
-// Deletar Personagem
-app.delete("/api/characters/:id", async (req, res, next) => {
-    try {
-        const { id } = req.params;
-
-        const deleted = await prisma.character.delete({
-            where: { id: Number(id) }
-        });
-
-        res.json({ message: "Personagem deletado", deleted });
-    } catch (e) {
-        next(e);
-    }
-});
-
-
-// ================= Abilitites  =================
-
-// Listar habilidades
-app.get('/api/abilities', async (req, res, next) => {
-    try {
-        const list = await prisma.ability.findMany({
-            include: { pillar: true }
-        });
-        res.json(list);
-    } catch (e) { next(e); }
-});
-
-// Cria habilidade pro usuário
-app.post('/api/abilities', async (req, res, next) => {
-    try {
-        const { nome, descricao, dano, custo, pillarId } = req.body;
-
-        if (!nome || !pillarId || !dano || !custo) {
-            return res.status(400).json({ error: 'Todos os campos são obrigatórios.' });
-        }
-
-        const created = await prisma.ability.create({
-            data: {
-                nome,
-                descricao,
-                dano,
-                custo,
-                pillar: {
-                    connect: { id: pillarId }
-                }
-            }
-        });
-
-        res.status(201).json(created);
-    } catch (e) {
-        next(e);
-    }
-});
-
-
 
 app.patch('/api/characters/:id', async (req, res, next) => {
     try {
@@ -222,15 +202,64 @@ app.patch('/api/characters/:id', async (req, res, next) => {
     } catch (e) { next(e) }
 })
 
-app.delete('/api/characters/:id', async (req, res, next) => {
+app.delete("/api/characters/:id", async (req, res, next) => {
     try {
         const id = Number(req.params.id)
         await prisma.character.delete({ where: { id } })
+        logger.info('personagem deletado', { id, requestId: req.requestId })
+        res.status(204).end()
+    } catch (e) {
+        next(e);
+    }
+});
+
+// ================= Abilities =================
+
+app.get('/api/abilities', async (req, res, next) => {
+    try {
+        const list = await prisma.ability.findMany({
+            include: { pillar: true }
+        });
+        res.json(list);
+    } catch (e) { next(e); }
+});
+
+app.post('/api/abilities', async (req, res, next) => {
+    try {
+        const { nome, descricao, dano, custo, pillarId } = req.body;
+
+        if (!nome || !pillarId || !dano || !custo) {
+            return res.status(400).json({ error: 'Todos os campos são obrigatórios.' });
+        }
+
+        const created = await prisma.ability.create({
+            data: {
+                nome,
+                descricao,
+                dano,
+                custo,
+                pillar: {
+                    connect: { id: pillarId }
+                }
+            }
+        });
+
+        res.status(201).json(created);
+    } catch (e) {
+        next(e);
+    }
+});
+
+app.delete('/api/abilities/:abilityId', async (req, res, next) => {
+    try {
+        const abilityId = Number(req.params.abilityId)
+        await prisma.ability.delete({ where: { id: abilityId } })
         res.status(204).end()
     } catch (e) { next(e) }
 })
 
-// Listar habilidades de um personagem
+// ================= Character Abilities =================
+
 app.get('/api/characters/:id/abilities', async (req, res, next) => {
     try {
         const id = Number(req.params.id)
@@ -241,24 +270,10 @@ app.get('/api/characters/:id/abilities', async (req, res, next) => {
     } catch (e) { next(e) }
 })
 
-// Vincular/remover habilidade
 app.post('/api/characters/:id/abilities/:abilityId', async (req, res, next) => {
     res.status(501).json({ error: 'Endpoint requer relacionamento many-to-many que nao existe no schema atual.' })
 })
 
-app.delete('/api/abilities/:abilityId', async (req, res, next) => {
-    try {
-
-        const abilityId = Number(req.params.abilityId)
-
-        await prisma.ability.delete({ where: { id: abilityId } })
-
-        res.status(204).end()
-
-    } catch (e) { next(e) }
-})
-
-// Usar habilidade (gastar mana)
 app.post('/api/characters/:id/use-ability', async (req, res, next) => {
     try {
         const characterId = Number(req.params.id)
@@ -290,16 +305,22 @@ app.post('/api/characters/:id/use-ability', async (req, res, next) => {
             data: { actualMana: ability.pillar.actualMana - ability.custo }
         })
 
+        logger.info('habilidade usada', {
+            characterId,
+            abilityId: ability.id,
+            nome: ability.nome,
+            custo: ability.custo,
+            manaRestante: updatedPillar.actualMana,
+            requestId: req.requestId,
+        })
         res.json({ pillar: updatedPillar, ability })
     } catch (e) { next(e) }
 })
 
-// Recuperar mana
 app.post('/api/characters/:id/regain-mana', async (req, res, next) => {
     res.status(501).json({ error: 'Endpoint requer campos e modelos que nao existem no schema atual.' })
 })
 
-// Descanso
 app.post('/api/characters/:id/rest', async (req, res, next) => {
     try {
         const characterId = Number(req.params.id)
@@ -339,26 +360,29 @@ app.post('/api/characters/:id/rest', async (req, res, next) => {
             })
         )
 
+        logger.info('descanso realizado', {
+            characterId,
+            type,
+            hpAntes: character.actualHp,
+            hpDepois: updatedCharacter.actualHp,
+            requestId: req.requestId,
+        })
         res.json({ character: updatedCharacter, pillars: updatedPillars })
     } catch (e) { next(e) }
 })
 
-// Error logging
+// ================= Error Handler =================
+
 app.use((err, req, res, next) => {
-    const log = {
-        level: 'error',
+    logger.error(err?.message || 'Unhandled error', {
         requestId: req.requestId,
         method: req.method,
         path: req.originalUrl,
-        message: err?.message || 'Unhandled error',
-    }
-    console.error(JSON.stringify(log))
+        stack: isDev ? err?.stack?.split('\n')[1]?.trim() : undefined,
+    })
     res.status(500).json({ error: 'Erro interno do servidor' })
 })
 
-app.listen( 3001, () => {
-    console.log(`API rodando em http://localhost:3001`);
+app.listen(3001, () => {
+    logger.info('servidor iniciado', { port: 3001, env: process.env.NODE_ENV || 'development' })
 });
-
-
-
