@@ -1,6 +1,5 @@
-const API_URL = import.meta.env.API_URL || 'http://localhost:3001'
 
-export { API_URL }
+export const API_URL = import.meta.env.API_URL || 'http://localhost:3001'
 
 function send(level, message, data = {}) {
     fetch(`${API_URL}/api/logs`, {
