@@ -1,8 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { PlusIcon, XMarkIcon } from "@heroicons/react/16/solid";
 import Modal from "../components/Modal";
+import { useAuth } from "../context/AuthContext";
+import logger from "../logger";
 
 export default function Adventure() {
+    const { authHeader } = useAuth()
     const [availableCharacters, setAvailableCharacters] = useState([]);
     const [characters, setCharacters] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -34,6 +37,7 @@ export default function Adventure() {
             try {
                 const response = await fetch("http://localhost:3001/api/characters", {
                     signal: controller.signal,
+                    headers: { ...authHeader },
                 });
                 if (!response.ok) {
                     throw new Error("Falha ao carregar personagens.");
@@ -97,7 +101,7 @@ export default function Adventure() {
                 `http://localhost:3001/api/characters/${character.id}/rest`,
                 {
                     method: "POST",
-                    headers: { "Content-Type": "application/json" },
+                    headers: { "Content-Type": "application/json", ...authHeader },
                     body: JSON.stringify({ type }),
                 }
             );
@@ -121,7 +125,7 @@ export default function Adventure() {
             setRestHighlightId(character.id);
             setTimeout(() => setRestHighlightId(null), 1000);
         } catch (err) {
-            console.error(err);
+            logger.error('erro ao descansar', { characterId: character.id, type, message: err.message });
             alert("Nao foi possivel realizar o descanso.");
         } finally {
             setRestSavingId(null);
@@ -147,7 +151,7 @@ export default function Adventure() {
                 `http://localhost:3001/api/characters/${character.id}/use-ability`,
                 {
                     method: "POST",
-                    headers: { "Content-Type": "application/json" },
+                    headers: { "Content-Type": "application/json", ...authHeader },
                     body: JSON.stringify({ abilityId: Number(selectedAbilityId) }),
                 }
             );
@@ -175,7 +179,7 @@ export default function Adventure() {
             setAbilityTargetId(null);
             setSelectedAbilityId("");
         } catch (err) {
-            console.error(err);
+            logger.error('erro ao usar habilidade', { characterId: character.id, abilityId: selectedAbilityId, message: err.message });
             alert("Nao foi possivel usar a habilidade.");
         } finally {
             setAbilitySavingId(null);
@@ -195,7 +199,7 @@ export default function Adventure() {
             setDamageSavingId(character.id);
             const response = await fetch(`http://localhost:3001/api/characters/${character.id}`, {
                 method: "PATCH",
-                headers: { "Content-Type": "application/json" },
+                headers: { "Content-Type": "application/json", ...authHeader },
                 body: JSON.stringify({ actualHp: nextHp }),
             });
             if (!response.ok) {
@@ -209,7 +213,7 @@ export default function Adventure() {
             setDamageTargetId(null);
             setDamageValue("");
         } catch (err) {
-            console.error(err);
+            logger.error('erro ao aplicar dano', { characterId: character.id, damage: parsedDamage, message: err.message });
             alert("Nao foi possivel aplicar o dano.");
         } finally {
             setDamageSavingId(null);
@@ -233,7 +237,7 @@ export default function Adventure() {
                     disabled={!canAdd}
                     title={canAdd ? "Adicionar personagem" : "Nenhum personagem disponivel"}
                 >
-                    <PlusIcon className="size-6 text-blue-500 rpg-icon bg" />
+                    <PlusIcon className="size-6 rpg-icon bg add-icon" />
                     <span>Adicionar</span>
                 </button>
             </header>
@@ -452,7 +456,7 @@ export default function Adventure() {
                         >
                             Cancelar
                         </button>
-                        <button type="submit" className="rpg-button save-button" style={{ width: "auto" }}>
+                        <button type="submit" className="rpg-button save-button" style={{ width: "100%" }}>
                             Adicionar
                         </button>
                     </div>

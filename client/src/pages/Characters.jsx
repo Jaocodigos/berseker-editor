@@ -2,29 +2,32 @@ import { useState, useEffect } from "react";
 import CharacterCard from "../components/CharacterCard";
 import { TrashIcon } from '@heroicons/react/16/solid'
 import {PlusIcon} from "@heroicons/react/16/solid/index.js";
+import { useAuth } from "../context/AuthContext";
+import logger from "../logger";
 
 export default function Characters() {
+    const { authHeader } = useAuth()
     const [showModal, setShowModal] = useState(false);
     const [pillars, setPillars] = useState([]);
     const [characterName, setCharacterName] = useState("");
     const [characterMaxHp, setCharacterMaxHp] = useState("");
-    const [characters, setCharacters] = useState([]); // lista de personagens
+    const [characters, setCharacters] = useState([]);
 
-    // buscar personagens ao carregar a página
     useEffect(() => {
         fetchCharacters();
     }, []);
 
     const fetchCharacters = async () => {
         try {
-            const res = await fetch("http://localhost:3001/api/characters");
+            const res = await fetch("http://localhost:3001/api/characters", {
+                headers: { ...authHeader }
+            });
             const data = await res.json();
             setCharacters(data);
         } catch (err) {
-            console.error("Erro ao carregar personagens:", err);
+            logger.error('erro ao carregar personagens', { message: err.message });
         }
     };
-
 
     const addPillar = () => {
         setPillars([...pillars, { name: "", type: "", maxMana: "" }]);
@@ -42,18 +45,14 @@ export default function Characters() {
         setPillars(newPillars);
     };
 
-
-
-    // FORMULÁRIO
     const handleSubmit = async (e) => {
-        e.preventDefault(); // evita reload da página
+        e.preventDefault();
 
-        // Montar objeto com os dados
         const personagem = {
-            name: characterName,       // Nome do personagem
+            name: characterName,
             maxHp: characterMaxHp === "" ? undefined : Number(characterMaxHp),
             actualHp: characterMaxHp === "" ? undefined : Number(characterMaxHp),
-            pillars: pillars.map(p => ({     // Pilares
+            pillars: pillars.map(p => ({
                 name: p.name,
                 type: p.type,
                 maxMana: Number(p.maxMana),
@@ -61,14 +60,14 @@ export default function Characters() {
             }))
         };
 
-        console.log(`Criando personagem: ${JSON.stringify(personagem)}`);
-
+        logger.info('criando personagem', { nome: personagem.name, pillars: personagem.pillars.length });
 
         try {
             const response = await fetch("http://localhost:3001/api/characters", {
                 method: "POST",
                 headers: {
-                    "Content-Type": "application/json"
+                    "Content-Type": "application/json",
+                    ...authHeader
                 },
                 body: JSON.stringify(personagem)
             });
@@ -78,9 +77,8 @@ export default function Characters() {
             }
 
             const data = await response.json();
-            console.log("Personagem criado com sucesso:", data);
+            logger.info('personagem criado', { id: data.id, nome: data.nome });
 
-            // Limpar formulário e fechar modal
             e.target.reset();
             setPillars([]);
             setCharacterMaxHp("");
@@ -88,9 +86,8 @@ export default function Characters() {
 
             await fetchCharacters();
 
-
         } catch (error) {
-            console.error(error);
+            logger.error('erro ao criar personagem', { message: error.message });
             alert("Não foi possível criar o personagem.");
         }
     };
@@ -99,9 +96,8 @@ export default function Characters() {
         <div style={{ textAlign: "center", padding: "2rem" }}>
             <p>Veja a lista de personagens e crie habilidades.</p>
 
-            {/* Botão para abrir o modal */}
             <button className="rpg-button add-button" onClick={() => setShowModal(true)}>
-                <PlusIcon className="size-6 text-blue-500 rpg-icon bg" />
+                <PlusIcon className="size-6 rpg-icon bg add-icon" />
             </button>
 
             <div className="characters-list" style={{ display: "flex", flexWrap: "wrap", gap: "1rem", justifyContent: "center", marginTop: "2rem" }}>
@@ -110,22 +106,17 @@ export default function Characters() {
                 ))}
             </div>
 
-            {/* Modal */}
             {showModal && (
                 <div className={"rpg-modal"}>
                     <div className={"modal-body"}>
-
-                        {/* Botão de fechar */}
                         <button className={'close'} onClick={() => setShowModal(false)}>
                             ✖
                         </button>
 
                         <h2>Adicionar Personagem</h2>
 
-                        {/* Formulário */}
                         <form onSubmit={handleSubmit}>
-
-                            <input type="text" placeholder="Nome do personagem"  value={characterName}
+                            <input type="text" placeholder="Nome do personagem" value={characterName}
                                 onChange={(e) => setCharacterName(e.target.value)}/>
                             <input
                                 type="number"
@@ -135,8 +126,6 @@ export default function Characters() {
                                 onChange={(e) => setCharacterMaxHp(e.target.value)}
                             />
 
-
-                            {/* Lista de pilares */}
                             {pillars.map((pillar, index) => (
                                 <div key={index} className={"pillar-form"}>
                                     <input
@@ -163,13 +152,11 @@ export default function Characters() {
                                 </div>
                             ))}
 
-
-                            {/* Botão para adicionar pilar */}
-                            <button type="button" onClick={addPillar} className={"rpg-button add-button character-button"}>
+                            <button type="button" onClick={addPillar} className={"rpg-button character-button"}>
                                 + Pilar
                             </button>
 
-                            <button type="submit" className={"rpg-button save-button"}>
+                            <button type="submit" className={"rpg-button save-button"} style={{ marginTop: "1rem" }}>
                                 Salvar
                             </button>
                         </form>

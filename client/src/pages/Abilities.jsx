@@ -2,25 +2,24 @@ import { useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
 import Modal from "../components/Modal";
 import {TrashIcon, EyeIcon, PlusIcon} from "@heroicons/react/16/solid/index.js";
+import { useAuth } from "../context/AuthContext";
+import logger from "../logger";
 
 export default function Abilities({ onRefresh }) {
-    const { characterId } = useParams(); // pega o ID do personagem da URL
+    const { characterId } = useParams();
+    const { authHeader } = useAuth()
     const [character, setCharacter] = useState(null);
 
-    // Controle de estado da habilidade
     const [selectedAbility, setSelectedAbility] = useState(null);
     const [openDropdownId, setOpenDropdownId] = useState(null);
 
-    // Modals
     const [showDescription, setShowDescription] = useState(false);
     const [openAddAbility, setOpenAddAbility] = useState(false);
 
     useEffect(() => {
-
         fetchCharacter();
 
         function handleClickOutside(e) {
-            // fecha se clicar fora de qualquer dropdown
             if (!e.target.closest(".dropdown")) {
                 setOpenDropdownId(null);
             }
@@ -32,65 +31,61 @@ export default function Abilities({ onRefresh }) {
         };
     }, []);
 
-
-    // Pegar user
     async function fetchCharacter() {
         try {
-            const res = await fetch(`http://localhost:3001/api/characters/${characterId}`);
+            const res = await fetch(`http://localhost:3001/api/characters/${characterId}`, {
+                headers: { ...authHeader }
+            });
             const data = await res.json();
             setCharacter(data);
         } catch (err) {
-            console.error("Erro ao buscar personagem:", err);
+            logger.error('erro ao buscar personagem', { characterId, message: err.message });
         }
     }
 
-
-
-    // Criar habilidade
     async function createAbility(abilityData) {
         try {
-
-            console.log(`Criando habilidade: ${JSON.stringify(abilityData)}`);
+            logger.info('criando habilidade', { nome: abilityData.nome, pillarId: abilityData.pillarId });
 
             const res = await fetch(`http://localhost:3001/api/abilities`, {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    ...abilityData
-                })
+                headers: {
+                    "Content-Type": "application/json",
+                    ...authHeader
+                },
+                body: JSON.stringify({ ...abilityData })
             });
 
             if (!res.ok) throw new Error("Erro ao criar habilidade");
 
-            return await res.json();
+            const created = await res.json();
+            logger.info('habilidade criada', { id: created.id, nome: created.nome });
+            return created;
         } catch (err) {
-            console.error(err);
+            logger.error('erro ao criar habilidade', { message: err.message });
             throw err;
         }
     }
 
-    // Deletar habilidades
     async function deleteAbility(abilityId) {
         try {
-
-            console.log(`Deletando habilidade: ${abilityId}`);
+            logger.info('deletando habilidade', { abilityId });
 
             const res = await fetch(`http://localhost:3001/api/abilities/${abilityId}`, {
-                method: "DELETE"
+                method: "DELETE",
+                headers: { ...authHeader }
             });
 
             if (res.status !== 204) throw new Error("Falha ao deletar habilidade");
 
             fetchCharacter()
-
-            return  "Habilidade deletada com sucesso!";
+            logger.info('habilidade deletada', { abilityId });
+            return "Habilidade deletada com sucesso!";
         } catch (err) {
-            console.error(err);
+            logger.error('erro ao deletar habilidade', { abilityId, message: err.message });
             throw err;
         }
     }
-
-
 
     function AbilityRow({ pillar, ability, openDropdownId, setOpenDropdownId }) {
         const isOpen = openDropdownId === ability.id;
@@ -116,7 +111,7 @@ export default function Abilities({ onRefresh }) {
                                 <div className="dropdown-item">
                                     <button
                                         onClick={() => {
-                                            setOpenDropdownId(null); // fecha dropdown
+                                            setOpenDropdownId(null);
                                             setShowDescription(true);
                                             setSelectedAbility(ability);
                                         }}
@@ -127,7 +122,7 @@ export default function Abilities({ onRefresh }) {
                                 <div className="dropdown-item">
                                     <button
                                         onClick={() => {
-                                            setOpenDropdownId(null); // fecha dropdown
+                                            setOpenDropdownId(null);
                                             deleteAbility(ability.id);
                                         }}
                                     >
@@ -142,17 +137,13 @@ export default function Abilities({ onRefresh }) {
         );
     }
 
-
-
     if (!character) return <p>Carregando...</p>;
 
     return (
-
         <div className="abilities-page">
             <h3>Habilidades de {character.nome}</h3>
-            {/*Novas habilidades*/}
             <button style={{ marginTop: "10px", display: "flex", alignItems: "center"}} className="rpg-button add-button" onClick={() => setOpenAddAbility(true)}>
-                <PlusIcon className="size-6 text-blue-500 rpg-icon bg" />
+                <PlusIcon className="size-6 rpg-icon bg add-icon" />
             </button>
             <Modal
                 title="Nova Habilidade"
@@ -168,7 +159,7 @@ export default function Abilities({ onRefresh }) {
                             descricao: e.target.descricao.value,
                             dano: e.target.dano.value,
                             custo: Number(e.target.custo.value),
-                            pillarId:  Number(e.target.pillarId.value)
+                            pillarId: Number(e.target.pillarId.value)
                         };
 
                         try {
@@ -185,7 +176,6 @@ export default function Abilities({ onRefresh }) {
                     }}
                 >
                     <input name="nome" type="text" placeholder="Nome" required />
-
                     <input name="dano" type="text" placeholder="Dano" required />
                     <input name="custo" type="number" placeholder="Custo de mana" required />
                     <select name="pillarId" required defaultValue="">
@@ -195,9 +185,7 @@ export default function Abilities({ onRefresh }) {
                             </option>
                         ))}
                     </select>
-
                     <textarea name="descricao" placeholder="Descrição" />
-
                     <button type="submit" className="rpg-button save-button">
                         Salvar
                     </button>
@@ -211,7 +199,6 @@ export default function Abilities({ onRefresh }) {
                     <th>Dano</th>
                     <th>Custo</th>
                     <th>Ações</th>
-
                 </tr>
                 </thead>
                 <tbody>
@@ -222,7 +209,6 @@ export default function Abilities({ onRefresh }) {
                         ))
                     )}
                 </tbody>
-
             </table>
             <Modal
                 title={selectedAbility?.nome}
@@ -236,7 +222,6 @@ export default function Abilities({ onRefresh }) {
                     </>
                 )}
             </Modal>
-
         </div>
     );
 }

@@ -1,33 +1,24 @@
-import 'dotenv/config';
-const express = require('express')
-const cors = require('cors')
-const { PrismaClient } = require('@prisma/client')
-const { randomUUID } = require('crypto')
+import 'dotenv/config'
+import express from 'express'
+import cors from 'cors'
+import { PrismaClient } from '@prisma/client'
+import { randomUUID } from 'crypto'
+import path from 'path'
+import { fileURLToPath } from 'url'
 
-import path from 'path';
-import { fileURLToPath } from 'url';
-
-const logger = require('./logger')
-const isDev = process.env.NODE_ENV !== 'production'
-const authMiddleware = require('./middleware/auth')
-const authRouter = require('./routes/auth')
-const usersRouter = require('./routes/users')
+import logger from './logger.js'
+import authMiddleware from './middleware/auth.js'
+import authRouter from './routes/auth.js'
+import usersRouter from './routes/users.js'
 
 const prisma = new PrismaClient()
 const app = express()
+const isDev = process.env.NODE_ENV !== 'production'
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
 
-// Serve os arquivos buildados do Vite
-app.use(express.static(path.join(__dirname, '../../client/dist')));
-
-// Fallback para o React Router funcionar
-app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, '../../client/dist/index.html'));
-});
-
-app.use(cors());
+app.use(cors())
 app.use(express.json())
 
 // Request logging
@@ -68,6 +59,15 @@ app.use('/api/auth', authRouter)
 // ================= Gerenciamento de Usuários (Admin) =================
 
 app.use('/api/users', usersRouter)
+
+// ================= Serve frontend (produção) =================
+
+app.use(express.static(path.join(__dirname, '../../client/dist')))
+
+app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api/')) return next()
+    res.sendFile(path.join(__dirname, '../../client/dist/index.html'))
+})
 
 // ================= Rotas Protegidas (Basic Auth) =================
 
@@ -385,4 +385,4 @@ app.use((err, req, res, next) => {
 
 app.listen(3001, () => {
     logger.info('servidor iniciado', { port: 3001, env: process.env.NODE_ENV || 'development' })
-});
+})
