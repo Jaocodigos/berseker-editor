@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { PlusIcon, XMarkIcon } from "@heroicons/react/16/solid";
 import Modal from "../components/Modal";
 import { useAuth } from "../context/AuthContext";
@@ -21,6 +21,9 @@ export default function Adventure() {
     const [restTargetId, setRestTargetId] = useState(null);
     const [restSavingId, setRestSavingId] = useState(null);
     const [restHighlightId, setRestHighlightId] = useState(null);
+    const [xpTargetId, setXpTargetId] = useState(null);
+    const [xpValue, setXpValue] = useState("");
+    const [xpSavingId, setXpSavingId] = useState(null);
 
     const availableOptions = useMemo(() => {
         const selectedIds = new Set(characters.map((character) => character.id));
@@ -65,6 +68,36 @@ export default function Adventure() {
         };
     }, []);
 
+    // Ref para acessar sempre os valores mais recentes dentro do setInterval
+    // sem colocá-los como dependência (o que reiniciaria o intervalo a cada mudança)
+    const sessionRef = useRef({ characters: [], authHeader: {} });
+    useEffect(() => {
+        sessionRef.current = { characters, authHeader };
+    }, [characters, authHeader]);
+
+    useEffect(() => {
+        const interval = setInterval(async () => {
+            const { characters: current, authHeader: headers } = sessionRef.current;
+            if (current.length === 0) return;
+
+            const results = await Promise.allSettled(
+                current.map((char) =>
+                    fetch(`${API_URL}/api/characters/${char.id}`, { headers })
+                        .then((res) => (res.ok ? res.json() : char))
+                        .catch(() => char)
+                )
+            );
+
+            setCharacters(
+                results.map((result, i) =>
+                    result.status === "fulfilled" ? result.value : current[i]
+                )
+            );
+        }, 10000);
+
+        return () => clearInterval(interval);
+    }, []);
+
     const handleOpenAddModal = () => {
         if (availableOptions.length === 0) return;
         setSelectedCharacterId(String(availableOptions[0].id));
@@ -86,12 +119,52 @@ export default function Adventure() {
         setDamageValue("");
         setAbilityTargetId(null);
         setRestTargetId(null);
+        setXpTargetId(null);
     };
 
     const handleOpenRest = (characterId) => {
         setRestTargetId(characterId);
         setDamageTargetId(null);
         setAbilityTargetId(null);
+        setXpTargetId(null);
+    };
+
+    const handleOpenXp = (characterId) => {
+        setXpTargetId(characterId);
+        setXpValue("");
+        setDamageTargetId(null);
+        setAbilityTargetId(null);
+        setRestTargetId(null);
+    };
+
+    const handleAddXp = async (character) => {
+        const parsedXp = Number(xpValue);
+        if (!Number.isFinite(parsedXp) || parsedXp <= 0) {
+            alert("Informe um valor de XP valido.");
+            return;
+        }
+        const nextXp = (character.xp ?? 0) + parsedXp;
+        try {
+            setXpSavingId(character.id);
+            const response = await fetch(`${API_URL}/api/characters/${character.id}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json", ...authHeader },
+                body: JSON.stringify({ xp: nextXp }),
+            });
+            if (!response.ok) throw new Error("Falha ao atualizar XP.");
+            setCharacters((prev) =>
+                prev.map((entry) =>
+                    entry.id === character.id ? { ...entry, xp: nextXp } : entry
+                )
+            );
+            setXpTargetId(null);
+            setXpValue("");
+        } catch (err) {
+            logger.error('erro ao adicionar xp', { characterId: character.id, xp: parsedXp, message: err.message });
+            alert("Nao foi possivel adicionar XP.");
+        } finally {
+            setXpSavingId(null);
+        }
     };
 
     const handleRest = async (character, type) => {
@@ -136,6 +209,7 @@ export default function Adventure() {
         setAbilityTargetId(characterId);
         setDamageTargetId(null);
         setRestTargetId(null);
+        setXpTargetId(null);
         const allAbilities = (character.pillars || []).flatMap((p) => p.abilities || []);
         setSelectedAbilityId(allAbilities.length > 0 ? String(allAbilities[0].id) : "");
     };
@@ -272,6 +346,10 @@ export default function Adventure() {
                                         {character.actualHp ?? "--"}/{character.maxHp ?? "--"}
                                     </strong>
                                 </div>
+                                <div className="adventure-xp">
+                                    <span>XP</span>
+                                    <strong>{character.xp ?? 0}</strong>
+                                </div>
                                 <button
                                     className="adventure-remove-icon"
                                     onClick={() =>
@@ -323,6 +401,12 @@ export default function Adventure() {
                                     onClick={() => handleOpenRest(character.id)}
                                 >
                                     Descansar
+                                </button>
+                                <button
+                                    className="rpg-button xp-button"
+                                    onClick={() => handleOpenXp(character.id)}
+                                >
+                                    + XP
                                 </button>
                             </div>
                             {damageTargetId === character.id && (
@@ -413,6 +497,31 @@ export default function Adventure() {
                                         className="rpg-button cancel-button"
                                         onClick={() => setRestTargetId(null)}
                                         disabled={restSavingId === character.id}
+                                    >
+                                        Cancelar
+                                    </button>
+                                </div>
+                            )}
+                            {xpTargetId === character.id && (
+                                <div className="adventure-damage">
+                                    <input
+                                        type="number"
+                                        min="1"
+                                        placeholder="XP a adicionar"
+                                        value={xpValue}
+                                        onChange={(event) => setXpValue(event.target.value)}
+                                    />
+                                    <button
+                                        className="rpg-button neutral-button"
+                                        onClick={() => handleAddXp(character)}
+                                        disabled={xpSavingId === character.id}
+                                    >
+                                        Adicionar
+                                    </button>
+                                    <button
+                                        className="rpg-button cancel-button"
+                                        onClick={() => setXpTargetId(null)}
+                                        disabled={xpSavingId === character.id}
                                     >
                                         Cancelar
                                     </button>

@@ -1,46 +1,35 @@
 import { PrismaClient } from '@prisma/client'
-import bcrypt from 'bcryptjs'
 import logger from '../logger.js'
 
 const prisma = new PrismaClient()
 
 async function authMiddleware(req, res, next) {
-    const authHeader = req.headers.authorization
+    const token = req.cookies?.session
 
-    if (!authHeader || !authHeader.startsWith('Basic ')) {
-        logger.warn('auth: header ausente ou invalido', { path: req.originalUrl, ip: req.ip })
+    if (!token) {
+        logger.warn('auth: cookie de sessão ausente', { path: req.originalUrl, ip: req.ip })
         return res.status(401).json({ error: 'Autenticação necessária' })
     }
 
-    const base64 = authHeader.slice(6)
-    const decoded = Buffer.from(base64, 'base64').toString('utf8')
-    const colonIndex = decoded.indexOf(':')
-
-    if (colonIndex === -1) {
-        logger.warn('auth: formato de credencial invalido', { ip: req.ip })
-        return res.status(401).json({ error: 'Formato de credenciais inválido' })
-    }
-
-    const username = decoded.slice(0, colonIndex)
-    const password = decoded.slice(colonIndex + 1)
-
     try {
-        const user = await prisma.user.findUnique({ where: { username } })
+        const session = await prisma.session.findUnique({
+            where: { token },
+            include: { user: true },
+        })
 
-        if (!user) {
-            logger.warn('auth: usuario nao encontrado', { username, ip: req.ip })
-            return res.status(401).json({ error: 'Credenciais inválidas' })
+        if (!session) {
+            logger.warn('auth: sessão não encontrada', { ip: req.ip })
+            return res.status(401).json({ error: 'Sessão inválida' })
         }
 
-        const valid = await bcrypt.compare(password, user.passwordHash)
-
-        if (!valid) {
-            logger.warn('auth: senha incorreta', { username, ip: req.ip })
-            return res.status(401).json({ error: 'Credenciais inválidas' })
+        if (session.expiresAt < new Date()) {
+            logger.warn('auth: sessão expirada', { userId: session.userId, ip: req.ip })
+            await prisma.session.delete({ where: { token } })
+            return res.status(401).json({ error: 'Sessão expirada' })
         }
 
-        logger.debug('auth: autenticado', { username, ip: req.ip })
-        req.user = { id: user.id, username: user.username }
+        logger.debug('auth: autenticado via sessão', { username: session.user.username, ip: req.ip })
+        req.user = { id: session.user.id, username: session.user.username }
         next()
     } catch (e) {
         next(e)

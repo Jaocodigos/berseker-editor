@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE `characters` ADD COLUMN `xp` INTEGER NOT NULL DEFAULT 0;

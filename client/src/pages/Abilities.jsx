@@ -175,17 +175,34 @@ export default function Abilities({ onRefresh }) {
                         }
                     }}
                 >
-                    <input name="nome" type="text" placeholder="Nome" required />
-                    <input name="dano" type="text" placeholder="Dano" required />
-                    <input name="custo" type="number" placeholder="Custo de mana" required />
-                    <select name="pillarId" required defaultValue="">
-                        {character.pillars.map(p => (
-                            <option key={p.id} value={p.id}>
-                                {p.nome} ({p.tipo})
-                            </option>
-                        ))}
-                    </select>
-                    <textarea name="descricao" placeholder="Descrição" />
+                    <div className="form-field">
+                        <label>Nome</label>
+                        <input name="nome" type="text" placeholder="Nome da habilidade" required />
+                    </div>
+                    <div className="form-row">
+                        <div className="form-field">
+                            <label>Dano</label>
+                            <input name="dano" type="text" placeholder="ex: 2d6" required />
+                        </div>
+                        <div className="form-field">
+                            <label>Custo de mana</label>
+                            <input name="custo" type="number" placeholder="0" required />
+                        </div>
+                    </div>
+                    <div className="form-field">
+                        <label>Pilar</label>
+                        <select name="pillarId" required defaultValue="">
+                            {character.pillars.map(p => (
+                                <option key={p.id} value={p.id}>
+                                    {p.nome} ({p.tipo})
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                    <div className="form-field">
+                        <label>Descrição</label>
+                        <textarea name="descricao" placeholder="Descreva a habilidade..." />
+                    </div>
                     <button type="submit" className="rpg-button save-button">
                         Salvar
                     </button>

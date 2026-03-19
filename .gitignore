@@ -6,3 +6,9 @@
 */node_modules
 
 node_modules
+
+.claude
+
+/server/.env
+
+/client/.env
