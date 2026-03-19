@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, act } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import Adventure from '../../pages/Adventure'
@@ -105,6 +105,30 @@ describe('Adventure Page', () => {
         // Apenas o fetch inicial (GET) — nenhum PATCH
         const patchCalls = vi.mocked(fetch).mock.calls.filter(([, opts]) => opts?.method === 'PATCH')
         expect(patchCalls).toHaveLength(0)
+    })
+
+    it('recarrega HP e mana dos personagens em sessão a cada 5 segundos', async () => {
+        vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] })
+
+        const updatedCharacter = { ...mockCharacter, actualHp: 42 }
+        global.fetch = vi.fn()
+            .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve([mockCharacter]) }) // GET inicial
+            .mockResolvedValue({ ok: true, json: () => Promise.resolve(updatedCharacter) })    // polls
+
+        render(<MemoryRouter><Adventure /></MemoryRouter>)
+        await waitFor(() => expect(screen.queryByText(/Carregando/i)).not.toBeInTheDocument())
+
+        await addCharacterToSession()
+
+        // Avança 5 segundos para disparar o intervalo
+        await act(async () => {
+            vi.advanceTimersByTime(10000)
+        })
+
+        // HP atualizado deve aparecer na tela
+        await waitFor(() => expect(screen.getByText(/42/)).toBeInTheDocument())
+
+        vi.useRealTimers()
     })
 
     it('usa habilidade e envia abilityId correto', async () => {

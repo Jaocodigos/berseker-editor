@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { PlusIcon, XMarkIcon } from "@heroicons/react/16/solid";
 import Modal from "../components/Modal";
 import { useAuth } from "../context/AuthContext";
@@ -63,6 +63,36 @@ export default function Adventure() {
             isMounted = false;
             controller.abort();
         };
+    }, []);
+
+    // Ref para acessar sempre os valores mais recentes dentro do setInterval
+    // sem colocá-los como dependência (o que reiniciaria o intervalo a cada mudança)
+    const sessionRef = useRef({ characters: [], authHeader: {} });
+    useEffect(() => {
+        sessionRef.current = { characters, authHeader };
+    }, [characters, authHeader]);
+
+    useEffect(() => {
+        const interval = setInterval(async () => {
+            const { characters: current, authHeader: headers } = sessionRef.current;
+            if (current.length === 0) return;
+
+            const results = await Promise.allSettled(
+                current.map((char) =>
+                    fetch(`${API_URL}/api/characters/${char.id}`, { headers })
+                        .then((res) => (res.ok ? res.json() : char))
+                        .catch(() => char)
+                )
+            );
+
+            setCharacters(
+                results.map((result, i) =>
+                    result.status === "fulfilled" ? result.value : current[i]
+                )
+            );
+        }, 10000);
+
+        return () => clearInterval(interval);
     }, []);
 
     const handleOpenAddModal = () => {
