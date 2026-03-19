@@ -385,6 +385,10 @@ app.use((err, req, res, next) => {
     res.status(500).json({ error: 'Erro interno do servidor' })
 })
 
-app.listen(3001, () => {
-    logger.info('servidor iniciado', { port: 3001, env: process.env.NODE_ENV || 'development' })
-})
+export { app }
+
+if (process.env.NODE_ENV !== 'test') {
+    app.listen(3001, () => {
+        logger.info('servidor iniciado', { port: 3001, env: process.env.NODE_ENV || 'development' })
+    })
+}
