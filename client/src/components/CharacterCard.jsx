@@ -3,6 +3,7 @@ import Modal from "./Modal";
 import { FireIcon, TrashIcon } from '@heroicons/react/16/solid'
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { API_URL } from "../logger";
 
 
 export default function CharacterCard({ character, onRefresh }) {
@@ -17,7 +18,7 @@ export default function CharacterCard({ character, onRefresh }) {
 
     async function deleteCharacter(id) {
         try {
-            const res = await fetch(`http://localhost:3001/api/characters/${id}`, {
+            const res = await fetch(`${API_URL}/api/characters/${id}`, {
                 method: "DELETE",
                 headers: { ...authHeader }
             });

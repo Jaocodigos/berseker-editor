@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useCallback } from 'react'
-import logger from '../logger'
+import logger, { API_URL } from '../logger'
 
 const AuthContext = createContext(null)
 
@@ -10,7 +10,7 @@ export function AuthProvider({ children }) {
 
     const login = useCallback(async (username, password) => {
         const encoded = btoa(`${username}:${password}`)
-        const res = await fetch('http://localhost:3001/api/auth/login', {
+        const res = await fetch(`${API_URL}/api/auth/login`, {
             method: 'POST',
             headers: { 'Authorization': `Basic ${encoded}` }
         })
