@@ -505,6 +505,7 @@ button:focus-visible {
   gap: 1.25rem;
   justify-content: center;
   padding: 0 1rem 1rem;
+  margin-top: 2rem;
 }
 
 .character-card {
@@ -945,9 +946,23 @@ button:focus-visible {
   line-height: 1.4;
 }
 
-@media (max-width: 600px) {
+@media (max-width: 768px) {
   .home-page { padding: 2rem 1.25rem 4rem; gap: 3.5rem; }
   .home-hero { padding-top: 2rem; }
+
+  .home-steps {
+    grid-template-columns: 1fr;
+  }
+
+  .home-actions-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .home-actions-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 .dropdown-item.delete {
@@ -1256,14 +1271,61 @@ button:focus-visible {
 }
 
 
-@media (max-width: 720px) {
+@media (max-width: 768px) {
   .adventure-page {
-    padding: 1.5rem;
+    padding: 1.25rem;
+  }
+
+  .adventure-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .adventure-add {
+    width: 100%;
+    justify-content: center;
   }
 
   .adventure-grid {
     grid-template-columns: 1fr;
     grid-auto-rows: auto;
+  }
+
+  .adventure-card-header {
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+
+  .adventure-card-header > div:first-child {
+    flex: 1 1 100%;
+  }
+
+  .adventure-actions {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .adventure-damage {
+    flex-wrap: wrap;
+  }
+
+  .adventure-damage input,
+  .adventure-damage select {
+    flex: 1 1 100%;
+  }
+
+  .adventure-damage .rpg-button {
+    flex: 1 1 calc(50% - 0.375rem);
+  }
+}
+
+@media (max-width: 480px) {
+  .adventure-page {
+    padding: 1rem;
+  }
+
+  .adventure-actions {
+    grid-template-columns: 1fr;
   }
 }
 
@@ -1311,4 +1373,34 @@ button:focus-visible {
     }
   }
 
+}
+
+/* Abilities page responsive */
+@media (max-width: 768px) {
+  .abilities-page {
+    padding: 1rem;
+    overflow-x: auto;
+  }
+
+  .rpg-table {
+    min-width: 520px;
+  }
+
+  .abilities-page h3 {
+    font-size: 1.2rem;
+  }
+}
+
+/* Characters list responsive */
+@media (max-width: 768px) {
+  .characters-list {
+    grid-template-columns: 1fr;
+    padding: 0 0.5rem 1rem;
+  }
+}
+
+@media (min-width: 480px) and (max-width: 768px) {
+  .characters-list {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }

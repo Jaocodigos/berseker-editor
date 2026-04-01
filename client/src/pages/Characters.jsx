@@ -103,7 +103,7 @@ export default function Characters() {
                 <PlusIcon className="size-6 rpg-icon bg add-icon" />
             </button>
 
-            <div className="characters-list" style={{ display: "flex", flexWrap: "wrap", gap: "1rem", justifyContent: "center", marginTop: "2rem" }}>
+            <div className="characters-list">
                 {characters.map((char) => (
                     <CharacterCard key={char.id} character={char} onRefresh={fetchCharacters} />
                 ))}

@@ -7,8 +7,8 @@
 
 node_modules
 
-.claude
-
 /server/.env
 
 /client/.env
+
+.claude/settings.local.json
