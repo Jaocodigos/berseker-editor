@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { BrowserRouter as Router, Routes, Route, NavLink, useNavigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -10,24 +11,37 @@ import Login from "./pages/Login";
 function NavBar() {
     const { credentials, logout } = useAuth()
     const navigate = useNavigate()
+    const [menuOpen, setMenuOpen] = useState(false)
 
     const handleLogout = async () => {
+        setMenuOpen(false)
         await logout()
         navigate('/login', { replace: true })
     }
+
+    const closeMenu = () => setMenuOpen(false)
 
     if (!credentials) return null
 
     return (
         <nav className="rpg-nav">
-            <NavLink to="/" className="rpg-nav-brand">
+            <NavLink to="/" className="rpg-nav-brand" onClick={closeMenu}>
                 <span className="rpg-nav-brand-icon">⚔</span>
                 <span>Bersekerlandia</span>
             </NavLink>
-            <div className="rpg-nav-links">
-                <NavLink to="/" end className={({ isActive }) => isActive ? "rpg-nav-link active" : "rpg-nav-link"}>Home</NavLink>
-                <NavLink to="/characters" className={({ isActive }) => isActive ? "rpg-nav-link active" : "rpg-nav-link"}>Personagens</NavLink>
-                <NavLink to="/adventure" className={({ isActive }) => isActive ? "rpg-nav-link active" : "rpg-nav-link"}>Aventura</NavLink>
+            <button
+                className={`rpg-nav-hamburger${menuOpen ? " open" : ""}`}
+                onClick={() => setMenuOpen(!menuOpen)}
+                aria-label="Menu"
+            >
+                <span />
+                <span />
+                <span />
+            </button>
+            <div className={`rpg-nav-links${menuOpen ? " open" : ""}`}>
+                <NavLink to="/" end className={({ isActive }) => isActive ? "rpg-nav-link active" : "rpg-nav-link"} onClick={closeMenu}>Home</NavLink>
+                <NavLink to="/characters" className={({ isActive }) => isActive ? "rpg-nav-link active" : "rpg-nav-link"} onClick={closeMenu}>Personagens</NavLink>
+                <NavLink to="/adventure" className={({ isActive }) => isActive ? "rpg-nav-link active" : "rpg-nav-link"} onClick={closeMenu}>Aventura</NavLink>
                 <button className="rpg-nav-logout" onClick={handleLogout}>Sair</button>
             </div>
         </nav>

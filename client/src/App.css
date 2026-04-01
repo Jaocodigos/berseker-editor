@@ -137,6 +137,100 @@
   border-color: rgba(239, 68, 68, 0.2);
 }
 
+/* Hamburger button — hidden on desktop */
+.rpg-nav-hamburger {
+  display: none;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 6px;
+  flex-direction: column;
+  gap: 5px;
+  z-index: 110;
+}
+
+.rpg-nav-hamburger span {
+  display: block;
+  width: 22px;
+  height: 2px;
+  background: #e2e8f0;
+  border-radius: 2px;
+  transition: transform 0.25s ease, opacity 0.25s ease;
+}
+
+.rpg-nav-hamburger.open span:nth-child(1) {
+  transform: translateY(7px) rotate(45deg);
+}
+
+.rpg-nav-hamburger.open span:nth-child(2) {
+  opacity: 0;
+}
+
+.rpg-nav-hamburger.open span:nth-child(3) {
+  transform: translateY(-7px) rotate(-45deg);
+}
+
+@media (max-width: 768px) {
+  .rpg-nav {
+    padding: 0 1.25rem;
+  }
+
+  .rpg-nav-hamburger {
+    display: flex;
+  }
+
+  .rpg-nav-links {
+    position: fixed;
+    top: 64px;
+    left: 0;
+    right: 0;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
+    background: rgba(11, 11, 13, 0.95);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+    padding: 0.5rem 0;
+    transform: translateY(-110%);
+    opacity: 0;
+    pointer-events: none;
+    transition: transform 0.3s ease, opacity 0.3s ease;
+    z-index: 100;
+  }
+
+  .rpg-nav-links.open {
+    transform: translateY(0);
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .rpg-nav-link {
+    border-radius: 0;
+    padding: 0.85em 1.5rem;
+    font-size: 1rem;
+  }
+
+  .rpg-nav-link:hover {
+    background: rgba(255, 255, 255, 0.05);
+  }
+
+  .rpg-nav-link.active {
+    border: none;
+    border-left: 3px solid #22d3ee;
+    border-radius: 0;
+  }
+
+  .rpg-nav-logout {
+    padding: 0.85em 1.5rem;
+    font-size: 1rem;
+    border-radius: 0;
+    text-align: left;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+  }
+}
+
 /* ===== Login Page ===== */
 
 @keyframes login-orb-float {
