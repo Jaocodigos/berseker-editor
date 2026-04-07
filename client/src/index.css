@@ -465,6 +465,18 @@ button:focus-visible {
   grid-template-columns: 1fr 1fr auto;
 }
 
+.rpg-modal .pillar-form .rpg-button.delete-button.sm.pillar {
+  align-self: end;
+  margin-bottom: 2px;
+}
+
+.rpg-modal .action-section .rpg-button {
+  width: auto;
+  white-space: nowrap;
+  flex: 1;
+  min-width: 0;
+}
+
 @media (max-width: 720px) {
   .rpg-modal .modal-body {
     padding: 22px;
