@@ -1,0 +1,4 @@
+-- AlterTable
+ALTER TABLE `characters` ADD COLUMN `level` INTEGER NOT NULL DEFAULT 1,
+    ADD COLUMN `pillar_level` INTEGER NOT NULL DEFAULT 1,
+    ADD COLUMN `pillar_xp` INTEGER NOT NULL DEFAULT 0;

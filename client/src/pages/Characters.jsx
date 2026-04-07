@@ -12,6 +12,9 @@ export default function Characters() {
     const [characterName, setCharacterName] = useState("");
     const [characterMaxHp, setCharacterMaxHp] = useState("");
     const [characterXp, setCharacterXp] = useState("");
+    const [characterLevel, setCharacterLevel] = useState("");
+    const [characterPillarXp, setCharacterPillarXp] = useState("");
+    const [characterPillarLevel, setCharacterPillarLevel] = useState("");
     const [characters, setCharacters] = useState([]);
 
     useEffect(() => {
@@ -54,6 +57,9 @@ export default function Characters() {
             maxHp: characterMaxHp === "" ? undefined : Number(characterMaxHp),
             actualHp: characterMaxHp === "" ? undefined : Number(characterMaxHp),
             xp: characterXp === "" ? 0 : Number(characterXp),
+            level: characterLevel === "" ? 1 : Number(characterLevel),
+            pillarXp: characterPillarXp === "" ? 0 : Number(characterPillarXp),
+            pillarLevel: characterPillarLevel === "" ? 1 : Number(characterPillarLevel),
             pillars: pillars.map(p => ({
                 name: p.name,
                 type: p.type,
@@ -85,6 +91,9 @@ export default function Characters() {
             setPillars([]);
             setCharacterMaxHp("");
             setCharacterXp("");
+            setCharacterLevel("");
+            setCharacterPillarXp("");
+            setCharacterPillarLevel("");
             setShowModal(false);
 
             await fetchCharacters();
@@ -143,6 +152,38 @@ export default function Characters() {
                                         min="0"
                                         value={characterXp}
                                         onChange={(e) => setCharacterXp(e.target.value)}
+                                    />
+                                </div>
+                                <div className="form-field">
+                                    <label>Nível</label>
+                                    <input
+                                        type="number"
+                                        placeholder="Nível"
+                                        min="1"
+                                        value={characterLevel}
+                                        onChange={(e) => setCharacterLevel(e.target.value)}
+                                    />
+                                </div>
+                            </div>
+                            <div className="form-row">
+                                <div className="form-field">
+                                    <label>XP de Pilar</label>
+                                    <input
+                                        type="number"
+                                        placeholder="XP de Pilar"
+                                        min="0"
+                                        value={characterPillarXp}
+                                        onChange={(e) => setCharacterPillarXp(e.target.value)}
+                                    />
+                                </div>
+                                <div className="form-field">
+                                    <label>Nível de Pilar</label>
+                                    <input
+                                        type="number"
+                                        placeholder="Nível de Pilar"
+                                        min="1"
+                                        value={characterPillarLevel}
+                                        onChange={(e) => setCharacterPillarLevel(e.target.value)}
                                     />
                                 </div>
                             </div>

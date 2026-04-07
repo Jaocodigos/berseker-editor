@@ -23,6 +23,7 @@ export default function Adventure() {
     const [restHighlightId, setRestHighlightId] = useState(null);
     const [xpTargetId, setXpTargetId] = useState(null);
     const [xpValue, setXpValue] = useState("");
+    const [xpType, setXpType] = useState("character");
     const [xpSavingId, setXpSavingId] = useState(null);
 
     const availableOptions = useMemo(() => {
@@ -132,6 +133,7 @@ export default function Adventure() {
     const handleOpenXp = (characterId) => {
         setXpTargetId(characterId);
         setXpValue("");
+        setXpType("character");
         setDamageTargetId(null);
         setAbilityTargetId(null);
         setRestTargetId(null);
@@ -143,24 +145,29 @@ export default function Adventure() {
             alert("Informe um valor de XP valido.");
             return;
         }
-        const nextXp = (character.xp ?? 0) + parsedXp;
+        const isPillar = xpType === "pillar";
+        const currentXp = isPillar ? (character.pillarXp ?? 0) : (character.xp ?? 0);
+        const nextXp = currentXp + parsedXp;
+        const body = isPillar ? { pillarXp: nextXp } : { xp: nextXp };
         try {
             setXpSavingId(character.id);
             const response = await fetch(`${API_URL}/api/characters/${character.id}`, {
                 method: "PATCH",
                 headers: { "Content-Type": "application/json", ...authHeader },
-                body: JSON.stringify({ xp: nextXp }),
+                body: JSON.stringify(body),
             });
             if (!response.ok) throw new Error("Falha ao atualizar XP.");
             setCharacters((prev) =>
                 prev.map((entry) =>
-                    entry.id === character.id ? { ...entry, xp: nextXp } : entry
+                    entry.id === character.id
+                        ? { ...entry, ...(isPillar ? { pillarXp: nextXp } : { xp: nextXp }) }
+                        : entry
                 )
             );
             setXpTargetId(null);
             setXpValue("");
         } catch (err) {
-            logger.error('erro ao adicionar xp', { characterId: character.id, xp: parsedXp, message: err.message });
+            logger.error('erro ao adicionar xp', { characterId: character.id, xp: parsedXp, type: xpType, message: err.message });
             alert("Nao foi possivel adicionar XP.");
         } finally {
             setXpSavingId(null);
@@ -350,6 +357,10 @@ export default function Adventure() {
                                     <span>XP</span>
                                     <strong>{character.xp ?? 0}</strong>
                                 </div>
+                                <div className="adventure-xp">
+                                    <span>XP Pilar</span>
+                                    <strong>{character.pillarXp ?? 0}</strong>
+                                </div>
                                 <button
                                     className="adventure-remove-icon"
                                     onClick={() =>
@@ -504,6 +515,13 @@ export default function Adventure() {
                             )}
                             {xpTargetId === character.id && (
                                 <div className="adventure-damage">
+                                    <select
+                                        value={xpType}
+                                        onChange={(e) => setXpType(e.target.value)}
+                                    >
+                                        <option value="character">Personagem</option>
+                                        <option value="pillar">Pilar</option>
+                                    </select>
                                     <input
                                         type="number"
                                         min="1"

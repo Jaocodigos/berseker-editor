@@ -25,6 +25,9 @@ export default function CharacterCard({ character, onRefresh }) {
             maxHp: character.maxHp ?? 0,
             actualHp: character.actualHp ?? 0,
             xp: character.xp ?? 0,
+            level: character.level ?? 1,
+            pillarXp: character.pillarXp ?? 0,
+            pillarLevel: character.pillarLevel ?? 1,
             pillars: pillars.map(p => ({
                 id: p.id,
                 nome: p.nome,
@@ -77,6 +80,9 @@ export default function CharacterCard({ character, onRefresh }) {
                     maxHp: Number(editData.maxHp),
                     actualHp: Number(editData.actualHp),
                     xp: Number(editData.xp),
+                    level: Number(editData.level),
+                    pillarXp: Number(editData.pillarXp),
+                    pillarLevel: Number(editData.pillarLevel),
                 }),
             });
 
@@ -242,6 +248,38 @@ export default function CharacterCard({ character, onRefresh }) {
                                     min="0"
                                     value={editData.xp}
                                     onChange={(e) => updateEditField('xp', e.target.value)}
+                                />
+                            </div>
+                        </div>
+                        <div className="form-row">
+                            <div className="form-field">
+                                <label>Nível</label>
+                                <input
+                                    type="number"
+                                    placeholder="Nível"
+                                    min="1"
+                                    value={editData.level}
+                                    onChange={(e) => updateEditField('level', e.target.value)}
+                                />
+                            </div>
+                            <div className="form-field">
+                                <label>XP de Pilar</label>
+                                <input
+                                    type="number"
+                                    placeholder="XP de Pilar"
+                                    min="0"
+                                    value={editData.pillarXp}
+                                    onChange={(e) => updateEditField('pillarXp', e.target.value)}
+                                />
+                            </div>
+                            <div className="form-field">
+                                <label>Nível de Pilar</label>
+                                <input
+                                    type="number"
+                                    placeholder="Nível de Pilar"
+                                    min="1"
+                                    value={editData.pillarLevel}
+                                    onChange={(e) => updateEditField('pillarLevel', e.target.value)}
                                 />
                             </div>
                         </div>
