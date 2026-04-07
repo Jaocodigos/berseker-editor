@@ -356,6 +356,11 @@ button:focus-visible {
 
   }
 
+  .modal-body:has(form) {
+    align-items: stretch;
+    justify-content: flex-start;
+  }
+
   .pillar-form {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr)) auto;
@@ -463,6 +468,18 @@ button:focus-visible {
 
 .rpg-modal .pillar-form--edit {
   grid-template-columns: 1fr 1fr auto;
+}
+
+.rpg-modal .pillar-form .rpg-button.delete-button.sm.pillar {
+  align-self: end;
+  margin-bottom: 2px;
+}
+
+.rpg-modal .action-section .rpg-button {
+  width: auto;
+  white-space: nowrap;
+  flex: 1;
+  min-width: 0;
 }
 
 @media (max-width: 720px) {
@@ -1290,15 +1307,37 @@ button:focus-visible {
   .adventure-grid {
     grid-template-columns: 1fr;
     grid-auto-rows: auto;
+    gap: 1rem;
+  }
+
+  .adventure-card {
+    min-height: auto;
   }
 
   .adventure-card-header {
     flex-wrap: wrap;
     gap: 0.75rem;
+    position: relative;
+    padding-right: 44px;
   }
 
   .adventure-card-header > div:first-child {
     flex: 1 1 100%;
+  }
+
+  .adventure-card-header .adventure-hp {
+    flex: 1 1 auto;
+  }
+
+  .adventure-card-header .adventure-xp {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .adventure-card-header .adventure-remove-icon {
+    position: absolute;
+    top: 0;
+    right: 0;
   }
 
   .adventure-actions {

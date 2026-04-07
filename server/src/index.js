@@ -100,7 +100,7 @@ app.get('/api/characters/:id', async (req, res, next) => {
 
 app.post('/api/characters', async (req, res, next) => {
     try {
-        const { name, maxHp, actualHp, hp, pillars = [], xp = 0 } = req.body;
+        const { name, maxHp, actualHp, hp, pillars = [], xp = 0, level = 1, pillarXp = 0, pillarLevel = 1 } = req.body;
 
         if (!name) return res.status(400).json({ error: 'name e obrigatorio' });
 
@@ -130,6 +130,21 @@ app.post('/api/characters', async (req, res, next) => {
         const xpValue = Number(xp);
         if (!Number.isFinite(xpValue)) {
             return res.status(400).json({ error: 'xp deve ser um numero valido' });
+        }
+
+        const levelValue = Number(level);
+        if (!Number.isFinite(levelValue)) {
+            return res.status(400).json({ error: 'level deve ser um numero valido' });
+        }
+
+        const pillarXpValue = Number(pillarXp);
+        if (!Number.isFinite(pillarXpValue)) {
+            return res.status(400).json({ error: 'pillarXp deve ser um numero valido' });
+        }
+
+        const pillarLevelValue = Number(pillarLevel);
+        if (!Number.isFinite(pillarLevelValue)) {
+            return res.status(400).json({ error: 'pillarLevel deve ser um numero valido' });
         }
 
         const pillarPayload = [];
@@ -167,6 +182,9 @@ app.post('/api/characters', async (req, res, next) => {
                 maxHp: maxHpValue,
                 actualHp: actualHpValue,
                 xp: xpValue,
+                level: levelValue,
+                pillarXp: pillarXpValue,
+                pillarLevel: pillarLevelValue,
                 pillars: {
                     create: pillarPayload
                 }
@@ -185,7 +203,7 @@ app.post('/api/characters', async (req, res, next) => {
 app.patch('/api/characters/:id', async (req, res, next) => {
     try {
         const id = Number(req.params.id)
-        const { name, maxHp, actualHp, hp, xp } = req.body
+        const { name, maxHp, actualHp, hp, xp, level, pillarXp, pillarLevel } = req.body
         const data = {}
         if (name) data.nome = name
         if (maxHp !== undefined || hp !== undefined) {
@@ -211,6 +229,27 @@ app.patch('/api/characters/:id', async (req, res, next) => {
                 return res.status(400).json({ error: 'xp deve ser um numero valido' })
             }
             data.xp = parsedXp
+        }
+        if (level !== undefined) {
+            const parsedLevel = Number(level)
+            if (!Number.isFinite(parsedLevel)) {
+                return res.status(400).json({ error: 'level deve ser um numero valido' })
+            }
+            data.level = parsedLevel
+        }
+        if (pillarXp !== undefined) {
+            const parsedPillarXp = Number(pillarXp)
+            if (!Number.isFinite(parsedPillarXp)) {
+                return res.status(400).json({ error: 'pillarXp deve ser um numero valido' })
+            }
+            data.pillarXp = parsedPillarXp
+        }
+        if (pillarLevel !== undefined) {
+            const parsedPillarLevel = Number(pillarLevel)
+            if (!Number.isFinite(parsedPillarLevel)) {
+                return res.status(400).json({ error: 'pillarLevel deve ser um numero valido' })
+            }
+            data.pillarLevel = parsedPillarLevel
         }
         if (!Object.keys(data).length) {
             return res.status(400).json({ error: 'name, maxHp, actualHp ou xp sao obrigatorios' })

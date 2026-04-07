@@ -22,6 +22,9 @@ const mockChar = {
     maxHp: 100,
     actualHp: 80,
     xp: 50,
+    level: 3,
+    pillarXp: 30,
+    pillarLevel: 2,
     pillars: [
         { id: 1, nome: 'Ranger', tipo: 'Físico', maxMana: 10, actualMana: 7, abilities: [] },
     ],
@@ -94,6 +97,9 @@ describe('CharacterCard', () => {
         expect(screen.getByPlaceholderText('HP máx')).toBeInTheDocument()
         expect(screen.getByPlaceholderText('HP atual')).toBeInTheDocument()
         expect(screen.getByPlaceholderText('XP')).toBeInTheDocument()
+        expect(screen.getByPlaceholderText('Nível')).toBeInTheDocument()
+        expect(screen.getByPlaceholderText('XP de Pilar')).toBeInTheDocument()
+        expect(screen.getByPlaceholderText('Nível de Pilar')).toBeInTheDocument()
     })
 
     it('edita nome do personagem e chama fetch PATCH + onRefresh ao salvar', async () => {
@@ -115,6 +121,29 @@ describe('CharacterCard', () => {
                 expect.objectContaining({ method: 'PATCH' })
             )
             expect(onRefresh).toHaveBeenCalled()
+        })
+    })
+
+    it('envia level, pillarXp e pillarLevel ao salvar edição', async () => {
+        global.fetch = vi.fn().mockResolvedValue({ ok: true, status: 200, json: () => Promise.resolve({}) })
+        const onRefresh = vi.fn()
+        renderCard(mockChar, onRefresh)
+        const buttons = screen.getAllByRole('button')
+        await userEvent.click(buttons[1])
+
+        const levelInput = screen.getByPlaceholderText('Nível')
+        await userEvent.clear(levelInput)
+        await userEvent.type(levelInput, '5')
+
+        await userEvent.click(screen.getByText('Salvar'))
+
+        await waitFor(() => {
+            const patchCall = vi.mocked(fetch).mock.calls.find(([, opts]) => opts?.method === 'PATCH')
+            expect(patchCall).toBeDefined()
+            const body = JSON.parse(patchCall[1].body)
+            expect(body.level).toBe(5)
+            expect(body.pillarXp).toBe(30)
+            expect(body.pillarLevel).toBe(2)
         })
     })
 

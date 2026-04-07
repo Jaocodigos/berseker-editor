@@ -8,12 +8,15 @@ generator client {
 }
 
 model Character {
-  id       Int      @id @default(autoincrement())
-  nome     String
-  maxHp    Int      @default(0) @map("max_hp")
-  actualHp Int      @default(0) @map("actual_hp")
-  xp       Int      @default(0)
-  pillars  Pillar[]  // um personagem pode ter vários pilares (até 3 na lógica da aplicação)
+  id          Int      @id @default(autoincrement())
+  nome        String
+  maxHp       Int      @default(0) @map("max_hp")
+  actualHp    Int      @default(0) @map("actual_hp")
+  xp          Int      @default(0)
+  level       Int      @default(1)
+  pillarXp    Int      @default(0) @map("pillar_xp")
+  pillarLevel Int      @default(1) @map("pillar_level")
+  pillars     Pillar[]  // um personagem pode ter vários pilares (até 3 na lógica da aplicação)
 
   @@map("characters") // renomeia a tabela no banco para "characters"
 }

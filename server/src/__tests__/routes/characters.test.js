@@ -128,6 +128,41 @@ describe('Characters Routes', () => {
             )
         })
 
+        it('cria personagem com level, pillarXp e pillarLevel', async () => {
+            const created = { id: 5, nome: 'Mestre', maxHp: 100, actualHp: 100, xp: 0, level: 5, pillarXp: 200, pillarLevel: 3, pillars: [] }
+            mockPrisma.character.create.mockResolvedValue(created)
+            const res = await withAuth(
+                request(app).post('/api/characters').send({ name: 'Mestre', maxHp: 100, level: 5, pillarXp: 200, pillarLevel: 3 })
+            )
+            expect(res.status).toBe(201)
+            expect(mockPrisma.character.create).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    data: expect.objectContaining({ level: 5, pillarXp: 200, pillarLevel: 3 }),
+                })
+            )
+        })
+
+        it('retorna 400 com level inválido', async () => {
+            const res = await withAuth(
+                request(app).post('/api/characters').send({ name: 'Hero', level: 'abc' })
+            )
+            expect(res.status).toBe(400)
+        })
+
+        it('retorna 400 com pillarXp inválido', async () => {
+            const res = await withAuth(
+                request(app).post('/api/characters').send({ name: 'Hero', pillarXp: 'abc' })
+            )
+            expect(res.status).toBe(400)
+        })
+
+        it('retorna 400 com pillarLevel inválido', async () => {
+            const res = await withAuth(
+                request(app).post('/api/characters').send({ name: 'Hero', pillarLevel: 'abc' })
+            )
+            expect(res.status).toBe(400)
+        })
+
         it('cria personagem sem HP (default 0)', async () => {
             const created = { id: 2, nome: 'Zero', maxHp: 0, actualHp: 0, pillars: [] }
             mockPrisma.character.create.mockResolvedValue(created)
@@ -208,6 +243,63 @@ describe('Characters Routes', () => {
         it('retorna 400 com xp inválido', async () => {
             const res = await withAuth(
                 request(app).patch('/api/characters/1').send({ xp: 'abc' })
+            )
+            expect(res.status).toBe(400)
+        })
+
+        it('atualiza level', async () => {
+            const updated = { id: 1, nome: 'Hero', level: 5 }
+            mockPrisma.character.update.mockResolvedValue(updated)
+            const res = await withAuth(
+                request(app).patch('/api/characters/1').send({ level: 5 })
+            )
+            expect(res.status).toBe(200)
+            expect(mockPrisma.character.update).toHaveBeenCalledWith(
+                expect.objectContaining({ data: { level: 5 } })
+            )
+        })
+
+        it('retorna 400 com level inválido', async () => {
+            const res = await withAuth(
+                request(app).patch('/api/characters/1').send({ level: 'abc' })
+            )
+            expect(res.status).toBe(400)
+        })
+
+        it('atualiza pillarXp', async () => {
+            const updated = { id: 1, nome: 'Hero', pillarXp: 100 }
+            mockPrisma.character.update.mockResolvedValue(updated)
+            const res = await withAuth(
+                request(app).patch('/api/characters/1').send({ pillarXp: 100 })
+            )
+            expect(res.status).toBe(200)
+            expect(mockPrisma.character.update).toHaveBeenCalledWith(
+                expect.objectContaining({ data: { pillarXp: 100 } })
+            )
+        })
+
+        it('retorna 400 com pillarXp inválido', async () => {
+            const res = await withAuth(
+                request(app).patch('/api/characters/1').send({ pillarXp: 'abc' })
+            )
+            expect(res.status).toBe(400)
+        })
+
+        it('atualiza pillarLevel', async () => {
+            const updated = { id: 1, nome: 'Hero', pillarLevel: 3 }
+            mockPrisma.character.update.mockResolvedValue(updated)
+            const res = await withAuth(
+                request(app).patch('/api/characters/1').send({ pillarLevel: 3 })
+            )
+            expect(res.status).toBe(200)
+            expect(mockPrisma.character.update).toHaveBeenCalledWith(
+                expect.objectContaining({ data: { pillarLevel: 3 } })
+            )
+        })
+
+        it('retorna 400 com pillarLevel inválido', async () => {
+            const res = await withAuth(
+                request(app).patch('/api/characters/1').send({ pillarLevel: 'abc' })
             )
             expect(res.status).toBe(400)
         })
