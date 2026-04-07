@@ -356,6 +356,11 @@ button:focus-visible {
 
   }
 
+  .modal-body:has(form) {
+    align-items: stretch;
+    justify-content: flex-start;
+  }
+
   .pillar-form {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr)) auto;
