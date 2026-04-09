@@ -1,11 +1,11 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { PlusIcon, XMarkIcon } from "@heroicons/react/16/solid";
 import Modal from "../components/Modal";
 import { useAuth } from "../context/AuthContext";
 import logger, { API_URL } from "../logger";
 
 export default function Adventure() {
-    const { authHeader } = useAuth()
+    const { authHeader, isMaster } = useAuth()
     const [availableCharacters, setAvailableCharacters] = useState([]);
     const [characters, setCharacters] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -25,6 +25,11 @@ export default function Adventure() {
     const [xpValue, setXpValue] = useState("");
     const [xpType, setXpType] = useState("character");
     const [xpSavingId, setXpSavingId] = useState(null);
+    const [enemies, setEnemies] = useState([]);
+    const [prevEnemyIds, setPrevEnemyIds] = useState(new Set());
+    const [highlightedEnemyIds, setHighlightedEnemyIds] = useState(new Set());
+    const [diceResults, setDiceResults] = useState({});
+    const diceTimers = useRef({});
 
     const availableOptions = useMemo(() => {
         const selectedIds = new Set(characters.map((character) => character.id));
@@ -98,6 +103,213 @@ export default function Adventure() {
 
         return () => clearInterval(interval);
     }, []);
+
+    // Fetch inimigos na aventura
+    const fetchAdventureEnemies = async () => {
+        try {
+            const res = await fetch(`${API_URL}/api/adventure/enemies`, {
+                headers: { ...authHeader },
+            });
+            if (!res.ok) return;
+            const data = await res.json();
+            const newIds = new Set(data.map((e) => e.id));
+            setPrevEnemyIds((prev) => {
+                const added = new Set([...newIds].filter((id) => !prev.has(id)));
+                if (added.size > 0) {
+                    setHighlightedEnemyIds(added);
+                    setTimeout(() => setHighlightedEnemyIds(new Set()), 2000);
+                }
+                return newIds;
+            });
+            setEnemies(data);
+        } catch {
+            // silencioso
+        }
+    };
+
+    useEffect(() => {
+        fetchAdventureEnemies();
+    }, []);
+
+    useEffect(() => {
+        const interval = setInterval(fetchAdventureEnemies, 10000);
+        return () => clearInterval(interval);
+    }, []);
+
+    // Dice roll flash
+    const showDiceRoll = useCallback((characterId, rollData) => {
+        if (diceTimers.current[characterId]) {
+            clearTimeout(diceTimers.current[characterId]);
+        }
+        setDiceResults((prev) => ({ ...prev, [characterId]: rollData }));
+        diceTimers.current[characterId] = setTimeout(() => {
+            setDiceResults((prev) => {
+                const next = { ...prev };
+                delete next[characterId];
+                return next;
+            });
+            delete diceTimers.current[characterId];
+        }, 10000);
+    }, []);
+
+    // Cleanup dice timers on unmount
+    useEffect(() => {
+        return () => {
+            Object.values(diceTimers.current).forEach(clearTimeout);
+        };
+    }, []);
+
+    // Polling dice rolls for other players
+    const diceRollSeenRef = useRef({});
+    useEffect(() => {
+        const interval = setInterval(async () => {
+            const allIds = [
+                ...characters.map((c) => c.id),
+                ...enemies.map((e) => e.id),
+            ];
+            if (allIds.length === 0) return;
+
+            try {
+                const res = await fetch(
+                    `${API_URL}/api/adventure/dice-rolls?characterIds=${allIds.join(",")}`,
+                    { headers: { ...authHeader } }
+                );
+                if (!res.ok) return;
+                const rolls = await res.json();
+
+                for (const [idStr, roll] of Object.entries(rolls)) {
+                    const id = Number(idStr);
+                    const seenAt = diceRollSeenRef.current[id];
+                    if (seenAt && seenAt >= roll.at) continue;
+                    diceRollSeenRef.current[id] = roll.at;
+                    showDiceRoll(id, roll);
+                }
+            } catch {
+                // silencioso
+            }
+        }, 5000);
+
+        return () => clearInterval(interval);
+    }, [characters, enemies, authHeader, showDiceRoll]);
+
+    // Acoes de inimigos (apenas mestre)
+    const [enemyDamageTargetId, setEnemyDamageTargetId] = useState(null);
+    const [enemyDamageValue, setEnemyDamageValue] = useState("");
+    const [enemyDamageSavingId, setEnemyDamageSavingId] = useState(null);
+    const [enemyAbilityTargetId, setEnemyAbilityTargetId] = useState(null);
+    const [enemySelectedAbilityId, setEnemySelectedAbilityId] = useState("");
+    const [enemyAbilitySavingId, setEnemyAbilitySavingId] = useState(null);
+    const [enemyRestTargetId, setEnemyRestTargetId] = useState(null);
+    const [enemyRestSavingId, setEnemyRestSavingId] = useState(null);
+    const [enemyRestHighlightId, setEnemyRestHighlightId] = useState(null);
+
+    const handleEnemyDamage = async (enemy) => {
+        const parsed = Number(enemyDamageValue);
+        if (!Number.isFinite(parsed) || parsed <= 0) {
+            alert("Informe um dano valido.");
+            return;
+        }
+        const nextHp = Math.max(0, (enemy.actualHp ?? 0) - parsed);
+        try {
+            setEnemyDamageSavingId(enemy.id);
+            const res = await fetch(`${API_URL}/api/characters/${enemy.id}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json", ...authHeader },
+                body: JSON.stringify({ actualHp: nextHp }),
+            });
+            if (!res.ok) throw new Error();
+            setEnemies((prev) => prev.map((e) => e.id === enemy.id ? { ...e, actualHp: nextHp } : e));
+            setEnemyDamageTargetId(null);
+            setEnemyDamageValue("");
+        } catch {
+            alert("Nao foi possivel aplicar o dano.");
+        } finally {
+            setEnemyDamageSavingId(null);
+        }
+    };
+
+    const handleEnemyAbility = async (enemy) => {
+        if (!enemySelectedAbilityId) {
+            alert("Selecione uma habilidade.");
+            return;
+        }
+        try {
+            setEnemyAbilitySavingId(enemy.id);
+            const res = await fetch(`${API_URL}/api/characters/${enemy.id}/use-ability`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json", ...authHeader },
+                body: JSON.stringify({ abilityId: Number(enemySelectedAbilityId) }),
+            });
+            if (!res.ok) {
+                const err = await res.json();
+                if (res.status === 400 && err.error === "Mana insuficiente") {
+                    alert("Mana insuficiente.");
+                    return;
+                }
+                throw new Error();
+            }
+            const { pillar, diceRoll } = await res.json();
+            setEnemies((prev) => prev.map((e) =>
+                e.id === enemy.id
+                    ? { ...e, pillars: e.pillars.map((p) => p.id === pillar.id ? { ...p, actualMana: pillar.actualMana } : p) }
+                    : e
+            ));
+            if (diceRoll) {
+                showDiceRoll(enemy.id, diceRoll);
+            }
+            setEnemyAbilityTargetId(null);
+            setEnemySelectedAbilityId("");
+        } catch {
+            alert("Nao foi possivel usar a habilidade.");
+        } finally {
+            setEnemyAbilitySavingId(null);
+        }
+    };
+
+    const handleEnemyRest = async (enemy, type) => {
+        try {
+            setEnemyRestSavingId(enemy.id);
+            const res = await fetch(`${API_URL}/api/characters/${enemy.id}/rest`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json", ...authHeader },
+                body: JSON.stringify({ type }),
+            });
+            if (!res.ok) throw new Error();
+            const { character: updatedChar, pillars: updatedPillars } = await res.json();
+            setEnemies((prev) => prev.map((e) =>
+                e.id === enemy.id
+                    ? {
+                        ...e,
+                        actualHp: updatedChar.actualHp,
+                        pillars: e.pillars.map((p) => {
+                            const up = updatedPillars.find((u) => u.id === p.id);
+                            return up ? { ...p, actualMana: up.actualMana } : p;
+                        }),
+                    }
+                    : e
+            ));
+            setEnemyRestTargetId(null);
+            setEnemyRestHighlightId(enemy.id);
+            setTimeout(() => setEnemyRestHighlightId(null), 1000);
+        } catch {
+            alert("Nao foi possivel realizar o descanso.");
+        } finally {
+            setEnemyRestSavingId(null);
+        }
+    };
+
+    const handleRemoveFromAdventure = async (enemyId) => {
+        try {
+            const res = await fetch(`${API_URL}/api/characters/${enemyId}/leave-adventure`, {
+                method: "POST",
+                headers: { ...authHeader },
+            });
+            if (!res.ok) throw new Error();
+            setEnemies((prev) => prev.filter((e) => e.id !== enemyId));
+        } catch {
+            alert("Nao foi possivel remover o inimigo da aventura.");
+        }
+    };
 
     const handleOpenAddModal = () => {
         if (availableOptions.length === 0) return;
@@ -244,7 +456,7 @@ export default function Adventure() {
                 }
                 throw new Error(err.error || "Falha ao usar habilidade.");
             }
-            const { pillar } = await response.json();
+            const { pillar, diceRoll } = await response.json();
             setCharacters((prev) =>
                 prev.map((entry) =>
                     entry.id === character.id
@@ -257,6 +469,9 @@ export default function Adventure() {
                         : entry
                 )
             );
+            if (diceRoll) {
+                showDiceRoll(character.id, diceRoll);
+            }
             setAbilityTargetId(null);
             setSelectedAbilityId("");
         } catch (err) {
@@ -375,6 +590,20 @@ export default function Adventure() {
                                     ✖
                                 </button>
                             </div>
+
+                            {diceResults[character.id] && (
+                                <div className="dice-roll-flash">
+                                    <strong>{diceResults[character.id].abilityName}</strong>
+                                    <span className="dice-roll-detail">
+                                        {diceResults[character.id].notation} | [{diceResults[character.id].rolls.join(", ")}]
+                                        {diceResults[character.id].modifier !== 0 && (
+                                            <> {diceResults[character.id].modifier > 0 ? "+" : ""}{diceResults[character.id].modifier}</>
+                                        )}
+                                        {" = "}
+                                    </span>
+                                    <span className="dice-roll-total">{diceResults[character.id].total}</span>
+                                </div>
+                            )}
 
                             <div className="adventure-pillars">
                                 {(character.pillars || []).length === 0 ? (
@@ -549,6 +778,140 @@ export default function Adventure() {
                     ))
                 )}
             </div>
+
+            {/* Secao de inimigos na aventura */}
+            {enemies.length > 0 && (
+                <section className="adventure-enemies-section">
+                    <h2 className="adventure-enemies-title">Inimigos</h2>
+                    <div className="adventure-grid">
+                        {enemies.map((enemy) => (
+                            <article
+                                className={`adventure-card adventure-card--enemy${highlightedEnemyIds.has(enemy.id) ? " enemy-highlight" : ""}`}
+                                key={enemy.id}
+                            >
+                                <div className="adventure-card-header">
+                                    <div>
+                                        <h3>{enemy.nome || "Sem nome"}</h3>
+                                        <span className="enemy-badge">Inimigo</span>
+                                    </div>
+                                    {isMaster && (
+                                        <>
+                                            <div className={`adventure-hp${enemyRestHighlightId === enemy.id ? " rest-highlight" : ""}`}>
+                                                <span>HP</span>
+                                                <strong>{enemy.actualHp ?? "--"}/{enemy.maxHp ?? "--"}</strong>
+                                            </div>
+                                            <button
+                                                className="adventure-remove-icon"
+                                                onClick={() => handleRemoveFromAdventure(enemy.id)}
+                                                title="Remover da aventura"
+                                                aria-label="Remover da aventura"
+                                                type="button"
+                                            >
+                                                ✖
+                                            </button>
+                                        </>
+                                    )}
+                                </div>
+
+                                {diceResults[enemy.id] && (
+                                    <div className="dice-roll-flash">
+                                        <strong>{diceResults[enemy.id].abilityName}</strong>
+                                        {isMaster ? (
+                                            <>
+                                                <span className="dice-roll-detail">
+                                                    {diceResults[enemy.id].notation} | [{diceResults[enemy.id].rolls.join(", ")}]
+                                                    {diceResults[enemy.id].modifier !== 0 && (
+                                                        <> {diceResults[enemy.id].modifier > 0 ? "+" : ""}{diceResults[enemy.id].modifier}</>
+                                                    )}
+                                                    {" = "}
+                                                </span>
+                                                <span className="dice-roll-total">{diceResults[enemy.id].total}</span>
+                                            </>
+                                        ) : (
+                                            <span className="dice-roll-total"> = {diceResults[enemy.id].total}</span>
+                                        )}
+                                    </div>
+                                )}
+
+                                {isMaster && (
+                                    <>
+                                        <div className="adventure-pillars">
+                                            {(enemy.pillars || []).length === 0 ? (
+                                                <div className="adventure-pillar">
+                                                    <span className="pillar-name">Sem pilares</span>
+                                                    <span className="pillar-mana">0/0 Mana</span>
+                                                </div>
+                                            ) : (
+                                                enemy.pillars.map((pillar) => (
+                                                    <div key={pillar.id ?? pillar.nome} className={`adventure-pillar${enemyRestHighlightId === enemy.id ? " rest-highlight" : ""}`}>
+                                                        <span className="pillar-name">{pillar.nome}</span>
+                                                        <span className="pillar-mana">
+                                                            {pillar.actualMana ?? pillar.maxMana ?? 0}/{pillar.maxMana ?? 0} Mana
+                                                        </span>
+                                                    </div>
+                                                ))
+                                            )}
+                                        </div>
+
+                                        <div className="adventure-actions">
+                                            <button className="rpg-button delete-button" onClick={() => { setEnemyDamageTargetId(enemy.id); setEnemyDamageValue(""); setEnemyAbilityTargetId(null); setEnemyRestTargetId(null); }}>
+                                                Receber Dano
+                                            </button>
+                                            <button className="rpg-button adventure-ability-button" onClick={() => {
+                                                setEnemyAbilityTargetId(enemy.id);
+                                                setEnemyDamageTargetId(null);
+                                                setEnemyRestTargetId(null);
+                                                const allAb = (enemy.pillars || []).flatMap((p) => p.abilities || []);
+                                                setEnemySelectedAbilityId(allAb.length > 0 ? String(allAb[0].id) : "");
+                                            }}>
+                                                Usar Habilidade
+                                            </button>
+                                            <button className="rpg-button rest-button" onClick={() => { setEnemyRestTargetId(enemy.id); setEnemyDamageTargetId(null); setEnemyAbilityTargetId(null); }}>
+                                                Descansar
+                                            </button>
+                                        </div>
+
+                                        {enemyDamageTargetId === enemy.id && (
+                                            <div className="adventure-damage">
+                                                <input type="number" min="0" placeholder="Dano" value={enemyDamageValue} onChange={(e) => setEnemyDamageValue(e.target.value)} />
+                                                <button className="rpg-button neutral-button" onClick={() => handleEnemyDamage(enemy)} disabled={enemyDamageSavingId === enemy.id}>Aplicar</button>
+                                                <button className="rpg-button cancel-button" onClick={() => setEnemyDamageTargetId(null)} disabled={enemyDamageSavingId === enemy.id}>Cancelar</button>
+                                            </div>
+                                        )}
+
+                                        {enemyAbilityTargetId === enemy.id && (() => {
+                                            const allAbilities = (enemy.pillars || []).flatMap((p) => (p.abilities || []).map((a) => ({ ...a, pillarNome: p.nome })));
+                                            return (
+                                                <div className="adventure-damage">
+                                                    {allAbilities.length === 0 ? (
+                                                        <span className="muted">Nenhuma habilidade.</span>
+                                                    ) : (
+                                                        <select value={enemySelectedAbilityId} onChange={(e) => setEnemySelectedAbilityId(e.target.value)}>
+                                                            {allAbilities.map((a) => (
+                                                                <option key={a.id} value={a.id}>{a.nome} — Custo: {a.custo} ({a.pillarNome})</option>
+                                                            ))}
+                                                        </select>
+                                                    )}
+                                                    <button className="rpg-button neutral-button" onClick={() => handleEnemyAbility(enemy)} disabled={enemyAbilitySavingId === enemy.id || allAbilities.length === 0}>Usar</button>
+                                                    <button className="rpg-button cancel-button" onClick={() => setEnemyAbilityTargetId(null)} disabled={enemyAbilitySavingId === enemy.id}>Cancelar</button>
+                                                </div>
+                                            );
+                                        })()}
+
+                                        {enemyRestTargetId === enemy.id && (
+                                            <div className="adventure-damage">
+                                                <button className="rpg-button neutral-button" onClick={() => handleEnemyRest(enemy, "short")} disabled={enemyRestSavingId === enemy.id}>Descanso Curto</button>
+                                                <button className="rpg-button" onClick={() => handleEnemyRest(enemy, "long")} disabled={enemyRestSavingId === enemy.id}>Descanso Longo</button>
+                                                <button className="rpg-button cancel-button" onClick={() => setEnemyRestTargetId(null)} disabled={enemyRestSavingId === enemy.id}>Cancelar</button>
+                                            </div>
+                                        )}
+                                    </>
+                                )}
+                            </article>
+                        ))}
+                    </div>
+                </section>
+            )}
 
             <Modal
                 title="Adicionar personagem"

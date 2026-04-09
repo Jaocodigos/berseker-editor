@@ -29,23 +29,30 @@ describe('adminAuthMiddleware', () => {
         expect(res.body.error).toMatch(/ADMIN_TOKEN/)
     })
 
-    it('retorna 403 sem header X-Admin-Token', async () => {
+    it('retorna 403 sem header Authorization', async () => {
         const res = await request(testApp).get('/admin')
         expect(res.status).toBe(403)
         expect(res.body.error).toBe('Acesso restrito ao administrador')
     })
 
-    it('retorna 403 com token incorreto', async () => {
+    it('retorna 403 com formato invalido (sem Bearer)', async () => {
         const res = await request(testApp)
             .get('/admin')
-            .set('X-Admin-Token', 'wrong')
+            .set('Authorization', 'secret-token')
         expect(res.status).toBe(403)
     })
 
-    it('autoriza com token correto', async () => {
+    it('retorna 403 com token incorreto', async () => {
         const res = await request(testApp)
             .get('/admin')
-            .set('X-Admin-Token', 'secret-token')
+            .set('Authorization', 'Bearer wrong')
+        expect(res.status).toBe(403)
+    })
+
+    it('autoriza com Bearer token correto', async () => {
+        const res = await request(testApp)
+            .get('/admin')
+            .set('Authorization', 'Bearer secret-token')
         expect(res.status).toBe(200)
         expect(res.body.ok).toBe(true)
     })

@@ -24,7 +24,7 @@ describe('Abilities Routes', () => {
             token: VALID_TOKEN,
             userId: 1,
             expiresAt: new Date(Date.now() + 3_600_000),
-            user: { id: 1, username: 'user' },
+            user: { id: 1, username: 'user', role: 'player' },
         })
     })
 
@@ -93,6 +93,11 @@ describe('Abilities Routes', () => {
     })
 
     describe('POST /api/characters/:id/use-ability', () => {
+        beforeEach(() => {
+            // A rota agora faz findUnique no character para checar se e inimigo
+            mockPrisma.character.findUnique.mockResolvedValue({ id: 1, type: 'player_character' })
+        })
+
         it('retorna 400 sem abilityId', async () => {
             const res = await withAuth(
                 request(app).post('/api/characters/1/use-ability').send({})
@@ -151,6 +156,39 @@ describe('Abilities Routes', () => {
                 where: { id: 1 },
                 data: { actualMana: 5 },
             })
+        })
+
+        it('retorna diceRoll quando dano tem notacao valida', async () => {
+            mockPrisma.ability.findUnique.mockResolvedValue({
+                id: 1, nome: 'Fireball', dano: '2d6+3', custo: 5,
+                pillar: { id: 1, characterId: 1, actualMana: 10 },
+            })
+            mockPrisma.pillar.update.mockResolvedValue({ id: 1, actualMana: 5 })
+
+            const res = await withAuth(
+                request(app).post('/api/characters/1/use-ability').send({ abilityId: 1 })
+            )
+            expect(res.status).toBe(200)
+            expect(res.body.diceRoll).toBeTruthy()
+            expect(res.body.diceRoll.notation).toBe('2d6+3')
+            expect(res.body.diceRoll.rolls).toHaveLength(2)
+            expect(res.body.diceRoll.modifier).toBe(3)
+            expect(res.body.diceRoll.total).toBeGreaterThanOrEqual(5)  // min: 1+1+3
+            expect(res.body.diceRoll.total).toBeLessThanOrEqual(15)    // max: 6+6+3
+        })
+
+        it('retorna diceRoll null quando dano nao e notacao valida', async () => {
+            mockPrisma.ability.findUnique.mockResolvedValue({
+                id: 1, nome: 'Passiva', dano: 'especial', custo: 0,
+                pillar: { id: 1, characterId: 1, actualMana: 10 },
+            })
+            mockPrisma.pillar.update.mockResolvedValue({ id: 1, actualMana: 10 })
+
+            const res = await withAuth(
+                request(app).post('/api/characters/1/use-ability').send({ abilityId: 1 })
+            )
+            expect(res.status).toBe(200)
+            expect(res.body.diceRoll).toBeNull()
         })
 
         it('usa habilidade com custo exato ao mana disponível (borda)', async () => {

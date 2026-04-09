@@ -9,12 +9,13 @@ vi.mock('../../logger', () => ({
 }))
 
 function AuthConsumer() {
-    const { credentials, loading, login, logout, authHeader } = useAuth()
+    const { credentials, loading, login, logout, authHeader, isMaster } = useAuth()
     if (loading) return <span data-testid="loading">loading</span>
     return (
         <div>
             <span data-testid="credentials">{credentials ? credentials.username : 'none'}</span>
             <span data-testid="auth-header">{JSON.stringify(authHeader)}</span>
+            <span data-testid="is-master">{String(isMaster)}</span>
             <button onClick={() => login('user', 'pass')}>Login</button>
             <button onClick={logout}>Logout</button>
         </div>
@@ -106,5 +107,25 @@ describe('AuthContext', () => {
         render(<AuthProvider><AuthConsumer /></AuthProvider>)
         await waitFor(() => expect(screen.queryByTestId('loading')).not.toBeInTheDocument())
         expect(JSON.parse(screen.getByTestId('auth-header').textContent)).toEqual({})
+    })
+
+    it('isMaster é true quando role é master', async () => {
+        global.fetch = vi.fn().mockResolvedValue({
+            ok: true,
+            json: () => Promise.resolve({ id: 1, username: 'gm', role: 'master' }),
+        })
+        render(<AuthProvider><AuthConsumer /></AuthProvider>)
+        await waitFor(() => expect(screen.queryByTestId('loading')).not.toBeInTheDocument())
+        expect(screen.getByTestId('is-master').textContent).toBe('true')
+    })
+
+    it('isMaster é false quando role é player', async () => {
+        global.fetch = vi.fn().mockResolvedValue({
+            ok: true,
+            json: () => Promise.resolve({ id: 1, username: 'user', role: 'player' }),
+        })
+        render(<AuthProvider><AuthConsumer /></AuthProvider>)
+        await waitFor(() => expect(screen.queryByTestId('loading')).not.toBeInTheDocument())
+        expect(screen.getByTestId('is-master').textContent).toBe('false')
     })
 })

@@ -24,7 +24,7 @@ describe('POST /api/characters/:id/rest', () => {
             token: VALID_TOKEN,
             userId: 1,
             expiresAt: new Date(Date.now() + 3_600_000),
-            user: { id: 1, username: 'user' },
+            user: { id: 1, username: 'user', role: 'player' },
         })
     })
 

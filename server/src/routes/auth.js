@@ -47,7 +47,7 @@ router.post('/login', async (req, res, next) => {
 
         logger.info('login: sessão criada', { username, ip: req.ip })
         res.cookie('session', token, { ...cookieOptions, maxAge: SESSION_DURATION_MS })
-        res.json({ id: user.id, username: user.username })
+        res.json({ id: user.id, username: user.username, role: user.role })
     } catch (e) {
         next(e)
     }
@@ -70,7 +70,7 @@ router.post('/logout', async (req, res, next) => {
 
 // Me — retorna o usuário da sessão ativa (usado pelo client no carregamento)
 router.get('/me', authMiddleware, (req, res) => {
-    res.json({ id: req.user.id, username: req.user.username })
+    res.json({ id: req.user.id, username: req.user.username, role: req.user.role })
 })
 
 export default router
