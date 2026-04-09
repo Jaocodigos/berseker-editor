@@ -557,11 +557,26 @@ export default function Adventure() {
                 ) : (
                     characters.map((character) => (
                         <article className="adventure-card" key={character.id}>
-                            <div className="adventure-card-header">
+                            <div className="adventure-card-name">
                                 <div>
                                     <h3>{character.nome || "Sem nome"}</h3>
                                     <p className="muted">Pronto para a aventura.</p>
                                 </div>
+                                <button
+                                    className="adventure-remove-icon"
+                                    onClick={() =>
+                                        setCharacters((prev) =>
+                                            prev.filter((entry) => entry.id !== character.id)
+                                        )
+                                    }
+                                    title="Remover da mesa"
+                                    aria-label="Remover da mesa"
+                                    type="button"
+                                >
+                                    ✖
+                                </button>
+                            </div>
+                            <div className="adventure-card-stats">
                                 <div className={`adventure-hp${restHighlightId === character.id ? " rest-highlight" : ""}`}>
                                     <span>HP</span>
                                     <strong>
@@ -578,19 +593,6 @@ export default function Adventure() {
                                         <strong>{character.pillarXp ?? 0}</strong>
                                     </div>
                                 </div>
-                                <button
-                                    className="adventure-remove-icon"
-                                    onClick={() =>
-                                        setCharacters((prev) =>
-                                            prev.filter((entry) => entry.id !== character.id)
-                                        )
-                                    }
-                                    title="Remover da mesa"
-                                    aria-label="Remover da mesa"
-                                    type="button"
-                                >
-                                    ✖
-                                </button>
                             </div>
 
                             {diceResults[character.id] && (
