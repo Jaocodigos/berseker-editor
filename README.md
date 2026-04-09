@@ -1,6 +1,19 @@
 # Berserker Editor
 
-Aplicação para gerenciar personagens, pilares, habilidades e mana em sessões de RPG.
+Literalmente usando um pouco do que sei pra melhorar a experiência de jogar RPG com amigos. A intenção é completamente for fun aqui.
+Se estiver interessado em contribuir ou aprender mais sobre o jogo, entre em contato!
+
+Basicamente, o app permite:
+
+- Criar personagens (PCs/DMs) e habilidades.
+- Criar inimigos (DMs).
+- Adicionar inimigos na Aventura.
+- Usar habilidades.
+- Descansar para recuperar HP e MP.
+- Administrar XP e level de personagens e habilidades.
+
+Para experiências online, isso agrega muito pro dinamismo e diversão do grupo, além de evitar que erros de cálculo ocorram 
+por parte dos players ou do mestre.
 
 ## Tecnologias
 
