@@ -568,13 +568,15 @@ export default function Adventure() {
                                         {character.actualHp ?? "--"}/{character.maxHp ?? "--"}
                                     </strong>
                                 </div>
-                                <div className="adventure-xp">
-                                    <span>XP</span>
-                                    <strong>{character.xp ?? 0}</strong>
-                                </div>
-                                <div className="adventure-xp">
-                                    <span>XP Pilar</span>
-                                    <strong>{character.pillarXp ?? 0}</strong>
+                                <div className="adventure-xp-group">
+                                    <div className="adventure-xp">
+                                        <span>XP</span>
+                                        <strong>{character.xp ?? 0}</strong>
+                                    </div>
+                                    <div className="adventure-xp">
+                                        <span>XP Pilar</span>
+                                        <strong>{character.pillarXp ?? 0}</strong>
+                                    </div>
                                 </div>
                                 <button
                                     className="adventure-remove-icon"
