@@ -10,6 +10,8 @@ generator client {
 model Character {
   id          Int      @id @default(autoincrement())
   nome        String
+  type        String   @default("player_character") // "player_character" | "enemy"
+  inAdventure Boolean  @default(false) @map("in_adventure")
   maxHp       Int      @default(0) @map("max_hp")
   actualHp    Int      @default(0) @map("actual_hp")
   xp          Int      @default(0)
@@ -50,6 +52,7 @@ model User {
   id           Int       @id @default(autoincrement())
   username     String    @unique
   passwordHash String    @map("password_hash")
+  role         String    @default("player") // "player" | "master"
   createdAt    DateTime  @default(now()) @map("created_at")
   sessions     Session[]
 
