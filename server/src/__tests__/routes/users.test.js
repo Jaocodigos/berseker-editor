@@ -17,7 +17,7 @@ vi.mock('bcryptjs', () => ({ default: mockBcrypt }))
 import { app } from '../../index.js'
 
 const ADMIN_TOKEN = 'test-admin-token'
-const withAdmin = (req) => req.set('X-Admin-Token', ADMIN_TOKEN)
+const withAdmin = (req) => req.set('Authorization', `Bearer ${ADMIN_TOKEN}`)
 const origToken = process.env.ADMIN_TOKEN
 
 describe('Users Routes (/api/users)', () => {

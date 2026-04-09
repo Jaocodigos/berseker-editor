@@ -11,8 +11,11 @@ import { fileURLToPath } from 'url'
 
 import logger from './logger.js'
 import authMiddleware from './middleware/auth.js'
+import masterOnly from './middleware/masterOnly.js'
 import authRouter from './routes/auth.js'
 import usersRouter from './routes/users.js'
+import { rollDice } from './utils/dice.js'
+import { saveRoll, getRolls } from './store/diceRolls.js'
 
 const prisma = new PrismaClient()
 const app = express()
@@ -81,7 +84,25 @@ app.use(authMiddleware)
 
 app.get("/api/characters", async (req, res, next) => {
     try {
+        const isMaster = req.user.role === 'master'
+        const typeFilter = req.query.type
+        let where = {}
+
+        if (typeFilter) {
+            // Se filtro explicito, master ve tudo, player so ve player_character
+            if (typeFilter === 'enemy' && !isMaster) {
+                return res.json([])
+            }
+            where.type = typeFilter
+        } else {
+            // Sem filtro: player ve so PCs, master ve tudo
+            if (!isMaster) {
+                where.type = 'player_character'
+            }
+        }
+
         const list = await prisma.character.findMany({
+            where,
             include: { pillars: { include: { abilities: true }} }
         });
         res.json(list);
@@ -100,9 +121,17 @@ app.get('/api/characters/:id', async (req, res, next) => {
 
 app.post('/api/characters', async (req, res, next) => {
     try {
-        const { name, maxHp, actualHp, hp, pillars = [], xp = 0, level = 1, pillarXp = 0, pillarLevel = 1 } = req.body;
+        const { name, type = 'player_character', maxHp, actualHp, hp, pillars = [], xp = 0, level = 1, pillarXp = 0, pillarLevel = 1 } = req.body;
 
         if (!name) return res.status(400).json({ error: 'name e obrigatorio' });
+
+        if (!['player_character', 'enemy'].includes(type)) {
+            return res.status(400).json({ error: 'type deve ser "player_character" ou "enemy"' });
+        }
+
+        if (type === 'enemy' && req.user.role !== 'master') {
+            return res.status(403).json({ error: 'Apenas o mestre pode criar inimigos' });
+        }
 
         if (pillars.length > 3) {
             return res.status(400).json({ error: 'um personagem pode ter no maximo 3 pilares' });
@@ -179,6 +208,7 @@ app.post('/api/characters', async (req, res, next) => {
         const createdCharacter = await prisma.character.create({
             data: {
                 nome: name,
+                type,
                 maxHp: maxHpValue,
                 actualHp: actualHpValue,
                 xp: xpValue,
@@ -203,6 +233,11 @@ app.post('/api/characters', async (req, res, next) => {
 app.patch('/api/characters/:id', async (req, res, next) => {
     try {
         const id = Number(req.params.id)
+        const character = await prisma.character.findUnique({ where: { id } })
+        if (!character) return res.status(404).json({ error: 'Personagem não encontrado' })
+        if (character.type === 'enemy' && req.user.role !== 'master') {
+            return res.status(403).json({ error: 'Apenas o mestre pode editar inimigos' })
+        }
         const { name, maxHp, actualHp, hp, xp, level, pillarXp, pillarLevel } = req.body
         const data = {}
         if (name) data.nome = name
@@ -265,6 +300,11 @@ app.patch('/api/characters/:id', async (req, res, next) => {
 app.delete("/api/characters/:id", async (req, res, next) => {
     try {
         const id = Number(req.params.id)
+        const character = await prisma.character.findUnique({ where: { id } })
+        if (!character) return res.status(404).json({ error: 'Personagem não encontrado' })
+        if (character.type === 'enemy' && req.user.role !== 'master') {
+            return res.status(403).json({ error: 'Apenas o mestre pode deletar inimigos' })
+        }
         await prisma.character.delete({ where: { id } })
         logger.info('personagem deletado', { id, requestId: req.requestId })
         res.status(204).end()
@@ -411,6 +451,12 @@ app.post('/api/characters/:id/use-ability', async (req, res, next) => {
             return res.status(400).json({ error: 'abilityId e obrigatorio' })
         }
 
+        const targetChar = await prisma.character.findUnique({ where: { id: characterId } })
+        if (!targetChar) return res.status(404).json({ error: 'Personagem nao encontrado' })
+        if (targetChar.type === 'enemy' && req.user.role !== 'master') {
+            return res.status(403).json({ error: 'Apenas o mestre pode usar habilidades de inimigos' })
+        }
+
         const ability = await prisma.ability.findUnique({
             where: { id: Number(abilityId) },
             include: { pillar: true }
@@ -433,15 +479,21 @@ app.post('/api/characters/:id/use-ability', async (req, res, next) => {
             data: { actualMana: ability.pillar.actualMana - ability.custo }
         })
 
+        const diceRoll = rollDice(ability.dano)
+        if (diceRoll) {
+            saveRoll(characterId, { abilityName: ability.nome, ...diceRoll })
+        }
+
         logger.info('habilidade usada', {
             characterId,
             abilityId: ability.id,
             nome: ability.nome,
             custo: ability.custo,
             manaRestante: updatedPillar.actualMana,
+            diceRoll: diceRoll ? diceRoll.total : null,
             requestId: req.requestId,
         })
-        res.json({ pillar: updatedPillar, ability })
+        res.json({ pillar: updatedPillar, ability, diceRoll: diceRoll || null })
     } catch (e) { next(e) }
 })
 
@@ -456,6 +508,12 @@ app.post('/api/characters/:id/rest', async (req, res, next) => {
 
         if (!['short', 'long'].includes(type)) {
             return res.status(400).json({ error: 'type deve ser "short" ou "long"' })
+        }
+
+        const charCheck = await prisma.character.findUnique({ where: { id: characterId } })
+        if (!charCheck) return res.status(404).json({ error: 'Personagem nao encontrado' })
+        if (charCheck.type === 'enemy' && req.user.role !== 'master') {
+            return res.status(403).json({ error: 'Apenas o mestre pode descansar inimigos' })
         }
 
         const character = await prisma.character.findUnique({
@@ -496,6 +554,73 @@ app.post('/api/characters/:id/rest', async (req, res, next) => {
             requestId: req.requestId,
         })
         res.json({ character: updatedCharacter, pillars: updatedPillars })
+    } catch (e) { next(e) }
+})
+
+// ================= Adventure Enemies =================
+
+app.get('/api/adventure/enemies', async (req, res, next) => {
+    try {
+        const isMaster = req.user.role === 'master'
+
+        if (isMaster) {
+            const enemies = await prisma.character.findMany({
+                where: { type: 'enemy', inAdventure: true },
+                include: { pillars: { include: { abilities: true } } }
+            })
+            return res.json(enemies)
+        }
+
+        const enemies = await prisma.character.findMany({
+            where: { type: 'enemy', inAdventure: true },
+            select: { id: true, nome: true }
+        })
+        res.json(enemies)
+    } catch (e) { next(e) }
+})
+
+app.get('/api/adventure/dice-rolls', (req, res) => {
+    const raw = req.query.characterIds
+    if (!raw) return res.json({})
+
+    const characterIds = String(raw).split(',').map(Number).filter(Number.isFinite)
+    if (characterIds.length === 0) return res.json({})
+
+    res.json(getRolls(characterIds))
+})
+
+app.post('/api/characters/:id/join-adventure', masterOnly, async (req, res, next) => {
+    try {
+        const id = Number(req.params.id)
+        const character = await prisma.character.findUnique({ where: { id } })
+        if (!character) return res.status(404).json({ error: 'Personagem não encontrado' })
+        if (character.type !== 'enemy') {
+            return res.status(400).json({ error: 'Apenas inimigos podem ser colocados na aventura pelo mestre' })
+        }
+        const updated = await prisma.character.update({
+            where: { id },
+            data: { inAdventure: true },
+            include: { pillars: { include: { abilities: true } } }
+        })
+        logger.info('inimigo entrou na aventura', { id, nome: updated.nome, requestId: req.requestId })
+        res.json(updated)
+    } catch (e) { next(e) }
+})
+
+app.post('/api/characters/:id/leave-adventure', masterOnly, async (req, res, next) => {
+    try {
+        const id = Number(req.params.id)
+        const character = await prisma.character.findUnique({ where: { id } })
+        if (!character) return res.status(404).json({ error: 'Personagem não encontrado' })
+        if (character.type !== 'enemy') {
+            return res.status(400).json({ error: 'Apenas inimigos podem ser removidos da aventura pelo mestre' })
+        }
+        const updated = await prisma.character.update({
+            where: { id },
+            data: { inAdventure: false }
+        })
+        logger.info('inimigo saiu da aventura', { id, nome: updated.nome, requestId: req.requestId })
+        res.json(updated)
     } catch (e) { next(e) }
 })
 

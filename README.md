@@ -67,63 +67,95 @@ Frontend disponível em `http://localhost:5173`
 
 ---
 
-## Autenticação
+## Autenticacao e Roles
 
 ### Como funciona
 
-A aplicação usa **HTTP Basic Auth**. Ao acessar qualquer página protegida, o usuário é redirecionado para a tela de login. As credenciais são armazenadas no `localStorage` e enviadas automaticamente em todas as requisições à API.
+A aplicacao usa sessoes via cookie httpOnly. Ao acessar qualquer pagina protegida, o usuario e redirecionado para a tela de login.
 
-### Criando o primeiro usuário
+### Roles: Mestre e Player
 
-O gerenciamento de usuários é feito via API, protegido pelo `ADMIN_TOKEN` definido no `.env`. Use o header `x-admin-token` nas requisições.
+Existem dois roles:
 
-**Criar usuário:**
+- **Player** (default): pode criar e editar personagens, habilidades, e usar todas as funcionalidades da Aventura.
+- **Mestre**: tem acesso a tudo que o player tem, mais funcoes exclusivas como criar fichas de inimigos e controla-los na Aventura.
+
+O role e definido pelo admin ao criar ou editar o usuario (campo `role`: `"player"` ou `"master"`).
+
+### Inimigos
+
+- Apenas o mestre pode criar, editar e deletar fichas de inimigos (personagens com `type: "enemy"`).
+- Na pagina de Inimigos (`/enemies`), o mestre gerencia as fichas e pode enviar inimigos para a Aventura.
+- Na Aventura, inimigos aparecem em uma secao fixa abaixo dos PCs:
+  - **Player**: ve apenas o nome do inimigo (stats ocultos, sem interacao).
+  - **Mestre**: ve stats completos e pode aplicar dano, usar habilidades, descansar, etc.
+
+### Criando o primeiro usuario
+
+O gerenciamento de usuarios e feito via API, protegido pelo `ADMIN_TOKEN` definido no `.env`. Use o header `Authorization: Bearer <token>` nas requisicoes.
+
+**Criar usuario (player):**
 ```bash
 curl -X POST http://localhost:3001/api/users \
   -H "Content-Type: application/json" \
-  -H "x-admin-token: seu-token-secreto-aqui" \
-  -d '{"username": "mestre", "password": "senha123"}'
+  -H "Authorization: Bearer seu-token-secreto-aqui" \
+  -d '{"username": "jogador1", "password": "senha123"}'
 ```
 
-**Listar usuários:**
+**Criar usuario (mestre):**
 ```bash
-curl http://localhost:3001/api/users \
-  -H "x-admin-token: seu-token-secreto-aqui"
+curl -X POST http://localhost:3001/api/users \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer seu-token-secreto-aqui" \
+  -d '{"username": "mestre", "password": "senha123", "role": "master"}'
 ```
 
-**Atualizar usuário:**
+**Promover usuario existente a mestre:**
 ```bash
 curl -X PATCH http://localhost:3001/api/users/1 \
   -H "Content-Type: application/json" \
-  -H "x-admin-token: seu-token-secreto-aqui" \
-  -d '{"password": "nova-senha"}'
+  -H "Authorization: Bearer seu-token-secreto-aqui" \
+  -d '{"role": "master"}'
 ```
 
-**Deletar usuário:**
+**Listar usuarios:**
+```bash
+curl http://localhost:3001/api/users \
+  -H "Authorization: Bearer seu-token-secreto-aqui"
+```
+
+**Deletar usuario:**
 ```bash
 curl -X DELETE http://localhost:3001/api/users/1 \
-  -H "x-admin-token: seu-token-secreto-aqui"
+  -H "Authorization: Bearer seu-token-secreto-aqui"
 ```
 
 ### Rotas da API
 
-| Método | Rota | Proteção | Descrição |
+| Metodo | Rota | Protecao | Descricao |
 |--------|------|----------|-----------|
-| GET | `/api/health` | Pública | Healthcheck |
-| POST | `/api/auth/login` | Pública (valida credenciais) | Login |
-| GET | `/api/users` | Admin Token | Listar usuários |
-| POST | `/api/users` | Admin Token | Criar usuário |
-| PATCH | `/api/users/:id` | Admin Token | Atualizar usuário |
-| DELETE | `/api/users/:id` | Admin Token | Deletar usuário |
-| GET | `/api/characters` | Basic Auth | Listar personagens |
-| POST | `/api/characters` | Basic Auth | Criar personagem |
-| PATCH | `/api/characters/:id` | Basic Auth | Atualizar personagem |
-| DELETE | `/api/characters/:id` | Basic Auth | Deletar personagem |
-| GET | `/api/abilities` | Basic Auth | Listar habilidades |
-| POST | `/api/abilities` | Basic Auth | Criar habilidade |
-| DELETE | `/api/abilities/:id` | Basic Auth | Deletar habilidade |
-| POST | `/api/characters/:id/use-ability` | Basic Auth | Usar habilidade |
-| POST | `/api/characters/:id/rest` | Basic Auth | Descanso curto/longo |
+| GET | `/api/health` | Publica | Healthcheck |
+| POST | `/api/auth/login` | Publica | Login (retorna id, username, role) |
+| POST | `/api/auth/logout` | Sessao | Logout |
+| GET | `/api/auth/me` | Sessao | Usuario da sessao ativa |
+| GET | `/api/users` | Bearer Token | Listar usuarios |
+| POST | `/api/users` | Bearer Token | Criar usuario (aceita role) |
+| PATCH | `/api/users/:id` | Bearer Token | Atualizar usuario |
+| DELETE | `/api/users/:id` | Bearer Token | Deletar usuario |
+| GET | `/api/characters` | Sessao | Listar personagens (player ve so PCs, mestre ve tudo) |
+| GET | `/api/characters/:id` | Sessao | Obter personagem |
+| POST | `/api/characters` | Sessao | Criar personagem (type: enemy requer mestre) |
+| PATCH | `/api/characters/:id` | Sessao | Atualizar personagem (enemy requer mestre) |
+| DELETE | `/api/characters/:id` | Sessao | Deletar personagem (enemy requer mestre) |
+| GET | `/api/abilities` | Sessao | Listar habilidades |
+| POST | `/api/abilities` | Sessao | Criar habilidade |
+| PUT | `/api/abilities/:id` | Sessao | Atualizar habilidade |
+| DELETE | `/api/abilities/:id` | Sessao | Deletar habilidade |
+| POST | `/api/characters/:id/use-ability` | Sessao | Usar habilidade (enemy requer mestre) |
+| POST | `/api/characters/:id/rest` | Sessao | Descanso curto/longo (enemy requer mestre) |
+| GET | `/api/adventure/enemies` | Sessao | Inimigos na aventura (mestre: completo, player: so nome) |
+| POST | `/api/characters/:id/join-adventure` | Mestre | Colocar inimigo na aventura |
+| POST | `/api/characters/:id/leave-adventure` | Mestre | Remover inimigo da aventura |
 
 ---
 

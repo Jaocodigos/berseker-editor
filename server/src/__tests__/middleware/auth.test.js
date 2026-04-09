@@ -22,7 +22,7 @@ const validSession = {
     token: VALID_TOKEN,
     userId: 1,
     expiresAt: new Date(Date.now() + 3_600_000),
-    user: { id: 1, username: 'user' },
+    user: { id: 1, username: 'user', role: 'player' },
 }
 
 describe('authMiddleware', () => {
@@ -53,11 +53,11 @@ describe('authMiddleware', () => {
         expect(mockPrisma.session.delete).toHaveBeenCalledWith({ where: { token: VALID_TOKEN } })
     })
 
-    it('autoriza sessão válida e passa req.user', async () => {
+    it('autoriza sessão válida e passa req.user com role', async () => {
         mockPrisma.session.findUnique.mockResolvedValue(validSession)
         const res = await request(testApp).get('/test').set('Cookie', `session=${VALID_TOKEN}`)
         expect(res.status).toBe(200)
-        expect(res.body.user).toEqual({ id: 1, username: 'user' })
+        expect(res.body.user).toEqual({ id: 1, username: 'user', role: 'player' })
     })
 
     it('busca a sessão pelo token correto', async () => {

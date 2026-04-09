@@ -7,9 +7,10 @@ import Characters from "./pages/Characters";
 import Adventure from "./pages/Adventure";
 import Abilities from "./pages/Abilities";
 import Login from "./pages/Login";
+import Enemies from "./pages/Enemies";
 
 function NavBar() {
-    const { credentials, logout } = useAuth()
+    const { credentials, logout, isMaster } = useAuth()
     const navigate = useNavigate()
     const [menuOpen, setMenuOpen] = useState(false)
 
@@ -42,6 +43,7 @@ function NavBar() {
                 <NavLink to="/" end className={({ isActive }) => isActive ? "rpg-nav-link active" : "rpg-nav-link"} onClick={closeMenu}>Home</NavLink>
                 <NavLink to="/characters" className={({ isActive }) => isActive ? "rpg-nav-link active" : "rpg-nav-link"} onClick={closeMenu}>Personagens</NavLink>
                 <NavLink to="/adventure" className={({ isActive }) => isActive ? "rpg-nav-link active" : "rpg-nav-link"} onClick={closeMenu}>Aventura</NavLink>
+                {isMaster && <NavLink to="/enemies" className={({ isActive }) => isActive ? "rpg-nav-link active" : "rpg-nav-link"} onClick={closeMenu}>Inimigos</NavLink>}
                 <button className="rpg-nav-logout" onClick={handleLogout}>Sair</button>
             </div>
         </nav>
@@ -61,6 +63,7 @@ export default function App() {
                             <Route path="/" element={<ProtectedRoute><Home /></ProtectedRoute>} />
                             <Route path="/characters" element={<ProtectedRoute><Characters /></ProtectedRoute>} />
                             <Route path="/adventure" element={<ProtectedRoute><Adventure /></ProtectedRoute>} />
+                            <Route path="/enemies" element={<ProtectedRoute masterOnly><Enemies /></ProtectedRoute>} />
                             <Route path="/characters/:characterId/abilities" element={<ProtectedRoute><Abilities /></ProtectedRoute>} />
                         </Routes>
                     </main>

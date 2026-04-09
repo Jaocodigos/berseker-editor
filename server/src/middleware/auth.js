@@ -28,8 +28,8 @@ async function authMiddleware(req, res, next) {
             return res.status(401).json({ error: 'Sessão expirada' })
         }
 
-        logger.debug('auth: autenticado via sessão', { username: session.user.username, ip: req.ip })
-        req.user = { id: session.user.id, username: session.user.username }
+        logger.debug('auth: autenticado via sessão', { username: session.user.username, role: session.user.role, ip: req.ip })
+        req.user = { id: session.user.id, username: session.user.username, role: session.user.role }
         next()
     } catch (e) {
         next(e)

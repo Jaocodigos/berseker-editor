@@ -5,7 +5,7 @@ import { MemoryRouter } from 'react-router-dom'
 import Adventure from '../../pages/Adventure'
 
 vi.mock('../../context/AuthContext', () => ({
-    useAuth: () => ({ authHeader: { Authorization: 'Basic dXNlcjpwYXNz' } }),
+    useAuth: () => ({ authHeader: { Authorization: 'Basic dXNlcjpwYXNz' }, isMaster: false }),
 }))
 
 const mockCharacter = {
@@ -25,6 +25,17 @@ const mockCharacter = {
     ],
 }
 
+// Helper: wraps a fetch mock to always return [] for /adventure/enemies
+function wrapFetchWithEnemies(baseMock) {
+    return (...args) => {
+        const url = typeof args[0] === 'string' ? args[0] : args[0]?.url
+        if (url && url.includes('/adventure/enemies')) {
+            return Promise.resolve({ ok: true, json: () => Promise.resolve([]) })
+        }
+        return baseMock(...args)
+    }
+}
+
 async function addCharacterToSession() {
     // Click "Adicionar" header button
     await userEvent.click(screen.getByRole('button', { name: /Adicionar/i }))
@@ -36,21 +47,22 @@ async function addCharacterToSession() {
 
 describe('Adventure Page', () => {
     beforeEach(() => {
-        global.fetch = vi.fn().mockResolvedValue({ ok: true, status: 200, json: () => Promise.resolve({}) })
+        const baseMock = vi.fn().mockResolvedValue({ ok: true, status: 200, json: () => Promise.resolve({}) })
+        global.fetch = vi.fn(wrapFetchWithEnemies(baseMock))
         vi.spyOn(window, 'alert').mockImplementation(() => {})
     })
 
     it('mostra estado de loading durante o fetch inicial', () => {
-        global.fetch = vi.fn().mockReturnValue(new Promise(() => {}))
+        global.fetch = vi.fn(wrapFetchWithEnemies(() => new Promise(() => {})))
         render(<MemoryRouter><Adventure /></MemoryRouter>)
         expect(screen.getByText(/Carregando personagens/i)).toBeInTheDocument()
     })
 
     it('exibe mensagem de estado vazio quando não há personagens na sessão', async () => {
-        global.fetch = vi.fn().mockResolvedValue({
+        global.fetch = vi.fn(wrapFetchWithEnemies(vi.fn().mockResolvedValue({
             ok: true,
             json: () => Promise.resolve([mockCharacter]),
-        })
+        })))
         render(<MemoryRouter><Adventure /></MemoryRouter>)
         await waitFor(() =>
             expect(screen.queryByText(/Carregando personagens/i)).not.toBeInTheDocument()
@@ -59,7 +71,7 @@ describe('Adventure Page', () => {
     })
 
     it('exibe mensagem de erro quando o fetch falha', async () => {
-        global.fetch = vi.fn().mockResolvedValue({ ok: false })
+        global.fetch = vi.fn(wrapFetchWithEnemies(vi.fn().mockResolvedValue({ ok: false })))
         render(<MemoryRouter><Adventure /></MemoryRouter>)
         await waitFor(() =>
             expect(screen.getByText(/Erro ao carregar/i)).toBeInTheDocument()
@@ -67,9 +79,10 @@ describe('Adventure Page', () => {
     })
 
     it('clamp de HP: dano maior que HP atual não deixa HP negativo', async () => {
-        global.fetch = vi.fn()
+        const baseMock = vi.fn()
             .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve([mockCharacter]) })
             .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ ...mockCharacter, actualHp: 0 }) })
+        global.fetch = vi.fn(wrapFetchWithEnemies(baseMock))
 
         render(<MemoryRouter><Adventure /></MemoryRouter>)
         await waitFor(() =>
@@ -92,10 +105,10 @@ describe('Adventure Page', () => {
     })
 
     it('não chama fetch quando dano é inválido (zero ou negativo)', async () => {
-        global.fetch = vi.fn().mockResolvedValue({
+        global.fetch = vi.fn(wrapFetchWithEnemies(vi.fn().mockResolvedValue({
             ok: true,
             json: () => Promise.resolve([mockCharacter]),
-        })
+        })))
         render(<MemoryRouter><Adventure /></MemoryRouter>)
         await waitFor(() => expect(screen.queryByText(/Carregando/i)).not.toBeInTheDocument())
 
@@ -115,9 +128,10 @@ describe('Adventure Page', () => {
         vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] })
 
         const updatedCharacter = { ...mockCharacter, actualHp: 42 }
-        global.fetch = vi.fn()
+        const baseMock = vi.fn()
             .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve([mockCharacter]) }) // GET inicial
             .mockResolvedValue({ ok: true, json: () => Promise.resolve(updatedCharacter) })    // polls
+        global.fetch = vi.fn(wrapFetchWithEnemies(baseMock))
 
         render(<MemoryRouter><Adventure /></MemoryRouter>)
         await waitFor(() => expect(screen.queryByText(/Carregando/i)).not.toBeInTheDocument())
@@ -136,10 +150,10 @@ describe('Adventure Page', () => {
     })
 
     it('exibe XP do personagem no card', async () => {
-        global.fetch = vi.fn().mockResolvedValue({
+        global.fetch = vi.fn(wrapFetchWithEnemies(vi.fn().mockResolvedValue({
             ok: true,
             json: () => Promise.resolve([mockCharacter]),
-        })
+        })))
         render(<MemoryRouter><Adventure /></MemoryRouter>)
         await waitFor(() => expect(screen.queryByText(/Carregando/i)).not.toBeInTheDocument())
 
@@ -150,9 +164,10 @@ describe('Adventure Page', () => {
     })
 
     it('adiciona XP ao personagem via botão + XP', async () => {
-        global.fetch = vi.fn()
+        const baseMock = vi.fn()
             .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve([mockCharacter]) })
             .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ ...mockCharacter, xp: 75 }) })
+        global.fetch = vi.fn(wrapFetchWithEnemies(baseMock))
 
         render(<MemoryRouter><Adventure /></MemoryRouter>)
         await waitFor(() => expect(screen.queryByText(/Carregando/i)).not.toBeInTheDocument())
@@ -175,10 +190,10 @@ describe('Adventure Page', () => {
     })
 
     it('exibe XP de Pilar do personagem no card', async () => {
-        global.fetch = vi.fn().mockResolvedValue({
+        global.fetch = vi.fn(wrapFetchWithEnemies(vi.fn().mockResolvedValue({
             ok: true,
             json: () => Promise.resolve([mockCharacter]),
-        })
+        })))
         render(<MemoryRouter><Adventure /></MemoryRouter>)
         await waitFor(() => expect(screen.queryByText(/Carregando/i)).not.toBeInTheDocument())
 
@@ -189,9 +204,10 @@ describe('Adventure Page', () => {
     })
 
     it('adiciona XP de Pilar ao personagem via select + botão', async () => {
-        global.fetch = vi.fn()
+        const baseMock = vi.fn()
             .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve([mockCharacter]) })
             .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ ...mockCharacter, pillarXp: 50 }) })
+        global.fetch = vi.fn(wrapFetchWithEnemies(baseMock))
 
         render(<MemoryRouter><Adventure /></MemoryRouter>)
         await waitFor(() => expect(screen.queryByText(/Carregando/i)).not.toBeInTheDocument())
@@ -218,10 +234,10 @@ describe('Adventure Page', () => {
     })
 
     it('mostra select com opcoes Personagem e Pilar ao abrir XP', async () => {
-        global.fetch = vi.fn().mockResolvedValue({
+        global.fetch = vi.fn(wrapFetchWithEnemies(vi.fn().mockResolvedValue({
             ok: true,
             json: () => Promise.resolve([mockCharacter]),
-        })
+        })))
         render(<MemoryRouter><Adventure /></MemoryRouter>)
         await waitFor(() => expect(screen.queryByText(/Carregando/i)).not.toBeInTheDocument())
 
@@ -242,9 +258,10 @@ describe('Adventure Page', () => {
         const abilityResponse = {
             pillar: { ...mockCharacter.pillars[0], actualMana: 15 },
         }
-        global.fetch = vi.fn()
+        const baseMock = vi.fn()
             .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve([mockCharacter]) })
             .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(abilityResponse) })
+        global.fetch = vi.fn(wrapFetchWithEnemies(baseMock))
 
         render(<MemoryRouter><Adventure /></MemoryRouter>)
         await waitFor(() => expect(screen.queryByText(/Carregando/i)).not.toBeInTheDocument())
