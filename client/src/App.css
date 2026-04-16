@@ -229,6 +229,49 @@
     text-align: left;
     border-top: 1px solid rgba(255, 255, 255, 0.06);
   }
+
+  .rpg-nav-adv {
+    display: block;
+    width: 100%;
+  }
+
+  .rpg-nav-adv-trigger,
+  .rpg-nav-adv-static {
+    width: 100%;
+    justify-content: space-between;
+    border-radius: 0;
+    border: none;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    padding: 0.85em 1.5rem;
+    background: transparent;
+    color: #fcd34d;
+  }
+
+  .rpg-nav-adv-trigger:hover,
+  .rpg-nav-adv-trigger.open {
+    background: rgba(252, 211, 77, 0.08);
+    border-color: rgba(255, 255, 255, 0.06);
+  }
+
+  .rpg-nav-adv-name {
+    max-width: none;
+  }
+
+  .rpg-nav-adv-menu {
+    position: static;
+    margin: 0;
+    padding: 0;
+    background: rgba(0, 0, 0, 0.25);
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  .rpg-nav-adv-item {
+    padding: 0.85em 2.5rem;
+    border-radius: 0;
+    font-size: 0.95rem;
+  }
 }
 
 /* ===== Login Page ===== */
@@ -754,4 +797,270 @@
   color: #fff;
   font-weight: 700;
   font-size: 1.1rem;
+}
+
+/* ================= NavBar: dropdown da aventura atual ================= */
+
+.rpg-nav-adv {
+  position: relative;
+  display: inline-flex;
+}
+
+.rpg-nav-adv-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4em 1em;
+  border-radius: 999px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #fcd34d;
+  background: rgba(252, 211, 77, 0.08);
+  border: 1px solid rgba(252, 211, 77, 0.25);
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
+.rpg-nav-adv-trigger:hover,
+.rpg-nav-adv-trigger.open {
+  background: rgba(252, 211, 77, 0.14);
+  border-color: rgba(252, 211, 77, 0.45);
+  color: #fde68a;
+}
+
+.rpg-nav-adv-name {
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rpg-nav-adv-chevron {
+  font-size: 0.75rem;
+  transition: transform 0.2s ease;
+}
+
+.rpg-nav-adv-trigger.open .rpg-nav-adv-chevron {
+  transform: rotate(180deg);
+}
+
+.rpg-nav-adv-menu {
+  position: absolute;
+  top: calc(100% + 0.4rem);
+  right: 0;
+  min-width: 180px;
+  padding: 0.35rem;
+  border-radius: 10px;
+  background: var(--surface-elevated);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+  z-index: 120;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.rpg-nav-adv-item {
+  padding: 0.55em 0.9em;
+  border-radius: 7px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.8);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.rpg-nav-adv-item:hover {
+  background: rgba(34, 211, 238, 0.12);
+  color: #67e8f9;
+}
+
+.rpg-nav-adv-static {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.4em 1em;
+  border-radius: 999px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #fcd34d;
+  background: rgba(252, 211, 77, 0.08);
+  border: 1px solid rgba(252, 211, 77, 0.25);
+  letter-spacing: 0.02em;
+}
+
+/* ================= Página de seleção de aventura ================= */
+
+.adventure-select-page {
+  min-height: calc(100vh - 64px);
+  width: 100%;
+  padding: 4rem 1.5rem 3rem;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.adventure-select-header {
+  text-align: center;
+  margin-bottom: 2.5rem;
+  max-width: 640px;
+}
+
+.adventure-select-header h1 {
+  font-size: 2.25rem;
+  margin: 0 0 0.5rem;
+  color: #f1f5f9;
+  letter-spacing: 0.01em;
+}
+
+.adventure-select-header p {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 0.95rem;
+}
+
+.adventure-select-error {
+  max-width: 640px;
+  width: 100%;
+  margin-bottom: 1.25rem;
+  padding: 0.75rem 1rem;
+  border-radius: 10px;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: #fecaca;
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+.adventure-select-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  width: 100%;
+  max-width: 960px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 1rem;
+}
+
+.adventure-select-item {
+  display: flex;
+}
+
+.adventure-select-card {
+  position: relative;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.25rem 1.4rem;
+  border-radius: 14px;
+  background: linear-gradient(160deg, var(--surface-color) 0%, var(--bg-secondary-color) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  color: #f1f5f9;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.25s ease;
+}
+
+.adventure-select-card:hover:not(:disabled) {
+  transform: translateY(-2px);
+  border-color: rgba(34, 211, 238, 0.45);
+  box-shadow: 0 8px 28px rgba(34, 211, 238, 0.15), 0 0 0 1px rgba(34, 211, 238, 0.2) inset;
+}
+
+.adventure-select-card:focus-visible {
+  outline: none;
+  border-color: rgba(34, 211, 238, 0.55);
+  box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.25);
+}
+
+.adventure-select-card:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.adventure-select-name {
+  font-size: 1.05rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.adventure-select-role {
+  flex-shrink: 0;
+  padding: 0.25em 0.75em;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  border: 1px solid transparent;
+}
+
+.adventure-select-role--master {
+  color: #fcd34d;
+  background: rgba(252, 211, 77, 0.1);
+  border-color: rgba(252, 211, 77, 0.3);
+}
+
+.adventure-select-role--player {
+  color: #67e8f9;
+  background: rgba(34, 211, 238, 0.1);
+  border-color: rgba(34, 211, 238, 0.3);
+}
+
+.adventure-select-empty {
+  max-width: 480px;
+  margin: 3rem auto 0;
+  padding: 2.5rem 2rem;
+  border-radius: 16px;
+  background: var(--surface-color);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  text-align: center;
+}
+
+.adventure-select-empty h1 {
+  font-size: 1.5rem;
+  margin: 0 0 0.75rem;
+  color: #f1f5f9;
+}
+
+.adventure-select-empty p {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.95rem;
+  line-height: 1.55;
+}
+
+.adventure-select-icon {
+  font-size: 2.75rem;
+  margin-bottom: 0.75rem;
+  filter: drop-shadow(0 0 12px rgba(34, 211, 238, 0.35));
+}
+
+@media (max-width: 600px) {
+  .adventure-select-page {
+    padding: 2.5rem 1rem 2rem;
+  }
+
+  .adventure-select-header h1 {
+    font-size: 1.75rem;
+  }
+
+  .adventure-select-list {
+    grid-template-columns: 1fr;
+  }
 }
