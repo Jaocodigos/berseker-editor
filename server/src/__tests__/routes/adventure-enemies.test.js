@@ -72,7 +72,7 @@ describe('Adventure Enemies Routes', () => {
             expect(mockPrisma.character.findMany).toHaveBeenCalledWith(
                 expect.objectContaining({
                     where: { type: 'enemy', inAdventure: true, adventureId: ADV_ID },
-                    select: { id: true, nome: true },
+                    select: { id: true, nome: true, title: { select: { id: true, nome: true, color: true } } },
                 })
             )
         })

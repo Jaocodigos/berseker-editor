@@ -160,10 +160,12 @@ export default function CharacterCard({ character, onRefresh }) {
             <h3>{character.nome}</h3>
 
             {character.title && (
-                <p className="character-title">
-                    <span className="character-title-label" style={{ color: character.title.color }}>Título:</span>{' '}
-                    <span className="character-title-name" style={{ color: character.title.color }}>{character.title.nome}</span>
-                </p>
+                <span
+                    className="character-title-badge"
+                    style={{ color: character.title.color, borderColor: character.title.color }}
+                >
+                    {character.title.nome}
+                </span>
             )}
 
             {pillars.length > 0 ? (

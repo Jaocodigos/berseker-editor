@@ -690,7 +690,7 @@ app.get('/api/adventure/enemies', async (req, res, next) => {
 
         const enemies = await prisma.character.findMany({
             where: { type: 'enemy', inAdventure: true, adventureId: req.adventure.id },
-            select: { id: true, nome: true }
+            select: { id: true, nome: true, title: { select: { id: true, nome: true, color: true } } }
         })
         res.json(enemies)
     } catch (e) { next(e) }
