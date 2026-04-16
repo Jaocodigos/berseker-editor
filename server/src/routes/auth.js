@@ -45,9 +45,18 @@ router.post('/login', async (req, res, next) => {
 
         await prisma.session.create({ data: { token, userId: user.id, expiresAt } })
 
+        const adventures = await prisma.adventureUser.findMany({
+            where: { userId: user.id },
+            include: { adventure: true }
+        })
+
         logger.info('login: sessão criada', { username, ip: req.ip })
         res.cookie('session', token, { ...cookieOptions, maxAge: SESSION_DURATION_MS })
-        res.json({ id: user.id, username: user.username, role: user.role })
+        res.json({
+            id: user.id,
+            username: user.username,
+            adventures: adventures.map(a => ({ id: a.adventure.id, nome: a.adventure.nome, role: a.role }))
+        })
     } catch (e) {
         next(e)
     }
@@ -68,9 +77,30 @@ router.post('/logout', async (req, res, next) => {
     res.status(204).end()
 })
 
-// Me — retorna o usuário da sessão ativa (usado pelo client no carregamento)
-router.get('/me', authMiddleware, (req, res) => {
-    res.json({ id: req.user.id, username: req.user.username, role: req.user.role })
+// Me — retorna o usuário da sessão ativa com suas aventuras
+router.get('/me', authMiddleware, async (req, res, next) => {
+    try {
+        const adventures = await prisma.adventureUser.findMany({
+            where: { userId: req.user.id },
+            include: { adventure: true }
+        })
+
+        const adventureId = Number(req.cookies?.adventure)
+        let currentAdventure = null
+        if (adventureId) {
+            const membership = adventures.find(a => a.adventureId === adventureId)
+            if (membership) {
+                currentAdventure = { id: membership.adventure.id, nome: membership.adventure.nome, role: membership.role }
+            }
+        }
+
+        res.json({
+            id: req.user.id,
+            username: req.user.username,
+            adventures: adventures.map(a => ({ id: a.adventure.id, nome: a.adventure.nome, role: a.role })),
+            currentAdventure
+        })
+    } catch (e) { next(e) }
 })
 
 export default router
