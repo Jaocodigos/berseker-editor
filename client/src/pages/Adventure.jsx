@@ -2,10 +2,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { PlusIcon, XMarkIcon } from "@heroicons/react/16/solid";
 import Modal from "../components/Modal";
 import { useAuth } from "../context/AuthContext";
+import { useAdventure } from "../context/AdventureContext";
 import logger, { API_URL } from "../logger";
 
 export default function Adventure() {
-    const { authHeader, isMaster } = useAuth()
+    const { authHeader } = useAuth()
+    const { isMaster } = useAdventure()
     const [availableCharacters, setAvailableCharacters] = useState([]);
     const [characters, setCharacters] = useState([]);
     const [loading, setLoading] = useState(false);
