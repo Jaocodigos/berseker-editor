@@ -7,6 +7,7 @@ const { mockPrisma } = vi.hoisted(() => ({
         character: { findMany: vi.fn(), findUnique: vi.fn(), create: vi.fn(), update: vi.fn(), delete: vi.fn() },
         pillar: { update: vi.fn() },
         ability: { findMany: vi.fn(), findUnique: vi.fn(), create: vi.fn(), update: vi.fn(), delete: vi.fn() },
+        adventureUser: { findUnique: vi.fn() },
     },
 }))
 
@@ -16,7 +17,8 @@ import { app } from '../../index.js'
 import { saveRoll, clearAll } from '../../store/diceRolls.js'
 
 const VALID_TOKEN = 'test-session-token'
-const withAuth = (req) => req.set('Cookie', `session=${VALID_TOKEN}`)
+const ADV_ID = 7
+const withAuth = (req) => req.set('Cookie', [`session=${VALID_TOKEN}`, `adventure=${ADV_ID}`])
 
 describe('GET /api/adventure/dice-rolls', () => {
     beforeEach(() => {
@@ -26,7 +28,10 @@ describe('GET /api/adventure/dice-rolls', () => {
             token: VALID_TOKEN,
             userId: 1,
             expiresAt: new Date(Date.now() + 3_600_000),
-            user: { id: 1, username: 'user', role: 'player' },
+            user: { id: 1, username: 'user' },
+        })
+        mockPrisma.adventureUser.findUnique.mockResolvedValue({
+            userId: 1, adventureId: ADV_ID, role: 'player', adventure: { id: ADV_ID, nome: 'main' },
         })
     })
 

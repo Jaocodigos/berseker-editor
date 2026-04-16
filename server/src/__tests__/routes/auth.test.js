@@ -8,6 +8,8 @@ const { mockPrisma, mockBcrypt } = vi.hoisted(() => ({
         character: { findMany: vi.fn(), findUnique: vi.fn(), create: vi.fn(), update: vi.fn(), delete: vi.fn() },
         pillar: { update: vi.fn(), create: vi.fn(), delete: vi.fn(), count: vi.fn() },
         ability: { findMany: vi.fn(), findUnique: vi.fn(), create: vi.fn(), delete: vi.fn() },
+        adventureUser: { findMany: vi.fn(), findUnique: vi.fn() },
+        adventure: { findUnique: vi.fn() },
     },
     mockBcrypt: { compare: vi.fn(), hash: vi.fn() },
 }))
@@ -46,13 +48,20 @@ describe('POST /api/auth/login', () => {
         expect(res.status).toBe(401)
     })
 
-    it('retorna 200, seta cookie e retorna dados do usuário', async () => {
+    it('retorna 200, seta cookie e retorna dados do usuário com aventuras', async () => {
         mockPrisma.user.findUnique.mockResolvedValue({ id: 1, username: 'admin', passwordHash: 'h' })
         mockBcrypt.compare.mockResolvedValue(true)
         mockPrisma.session.create.mockResolvedValue({})
+        mockPrisma.adventureUser.findMany.mockResolvedValue([
+            { role: 'master', adventureId: 7, adventure: { id: 7, nome: 'main' } },
+        ])
         const res = await request(app).post('/api/auth/login').send({ username: 'admin', password: 'senha' })
         expect(res.status).toBe(200)
-        expect(res.body).toEqual({ id: 1, username: 'admin' })
+        expect(res.body).toEqual({
+            id: 1,
+            username: 'admin',
+            adventures: [{ id: 7, nome: 'main', role: 'master' }],
+        })
         expect(res.headers['set-cookie']).toBeDefined()
         expect(res.headers['set-cookie'][0]).toMatch(/session=/)
         expect(res.headers['set-cookie'][0]).toMatch(/HttpOnly/)
@@ -62,6 +71,7 @@ describe('POST /api/auth/login', () => {
         mockPrisma.user.findUnique.mockResolvedValue({ id: 1, username: 'admin', passwordHash: 'secret' })
         mockBcrypt.compare.mockResolvedValue(true)
         mockPrisma.session.create.mockResolvedValue({})
+        mockPrisma.adventureUser.findMany.mockResolvedValue([])
         const res = await request(app).post('/api/auth/login').send({ username: 'admin', password: 'senha' })
         expect(res.body.passwordHash).toBeUndefined()
     })
@@ -95,10 +105,42 @@ describe('GET /api/auth/me', () => {
         expect(res.status).toBe(401)
     })
 
-    it('retorna dados do usuário com sessão válida', async () => {
+    it('retorna dados do usuário com sessão válida e aventuras', async () => {
         mockPrisma.session.findUnique.mockResolvedValue(validSession)
+        mockPrisma.adventureUser.findMany.mockResolvedValue([
+            { role: 'master', adventureId: 7, adventure: { id: 7, nome: 'main' } },
+        ])
         const res = await request(app).get('/api/auth/me').set('Cookie', `session=${VALID_TOKEN}`)
         expect(res.status).toBe(200)
-        expect(res.body).toEqual({ id: 1, username: 'admin' })
+        expect(res.body).toEqual({
+            id: 1,
+            username: 'admin',
+            adventures: [{ id: 7, nome: 'main', role: 'master' }],
+            currentAdventure: null,
+        })
+    })
+
+    it('retorna currentAdventure quando o cookie adventure é válido', async () => {
+        mockPrisma.session.findUnique.mockResolvedValue(validSession)
+        mockPrisma.adventureUser.findMany.mockResolvedValue([
+            { role: 'master', adventureId: 7, adventure: { id: 7, nome: 'main' } },
+        ])
+        const res = await request(app)
+            .get('/api/auth/me')
+            .set('Cookie', [`session=${VALID_TOKEN}`, 'adventure=7'])
+        expect(res.status).toBe(200)
+        expect(res.body.currentAdventure).toEqual({ id: 7, nome: 'main', role: 'master' })
+    })
+
+    it('ignora cookie adventure se aventura não pertence ao usuário', async () => {
+        mockPrisma.session.findUnique.mockResolvedValue(validSession)
+        mockPrisma.adventureUser.findMany.mockResolvedValue([
+            { role: 'player', adventureId: 7, adventure: { id: 7, nome: 'main' } },
+        ])
+        const res = await request(app)
+            .get('/api/auth/me')
+            .set('Cookie', [`session=${VALID_TOKEN}`, 'adventure=999'])
+        expect(res.status).toBe(200)
+        expect(res.body.currentAdventure).toBeNull()
     })
 })

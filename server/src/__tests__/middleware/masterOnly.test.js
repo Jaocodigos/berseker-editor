@@ -3,10 +3,12 @@ import express from 'express'
 import request from 'supertest'
 import masterOnly from '../../middleware/masterOnly.js'
 
-function buildApp(role) {
+function buildApp(adventureRole) {
     const app = express()
     app.use((req, _res, next) => {
-        req.user = { id: 1, username: 'test', role }
+        req.user = { id: 1, username: 'test' }
+        req.adventure = { id: 1, nome: 'main' }
+        req.adventureRole = adventureRole
         next()
     })
     app.get('/test', masterOnly, (_req, res) => res.json({ ok: true }))
@@ -26,7 +28,7 @@ describe('masterOnly middleware', () => {
         expect(res.body.ok).toBe(true)
     })
 
-    it('retorna 403 quando role é undefined', async () => {
+    it('retorna 403 quando adventureRole é undefined', async () => {
         const app = express()
         app.use((req, _res, next) => {
             req.user = { id: 1, username: 'test' }
