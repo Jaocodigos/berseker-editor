@@ -14,11 +14,25 @@ export default function Enemies() {
     const [characterLevel, setCharacterLevel] = useState("");
     const [characterPillarXp, setCharacterPillarXp] = useState("");
     const [characterPillarLevel, setCharacterPillarLevel] = useState("");
+    const [characterTitleId, setCharacterTitleId] = useState("");
     const [enemies, setEnemies] = useState([]);
+    const [titles, setTitles] = useState([]);
 
     useEffect(() => {
         fetchEnemies();
+        fetchTitles();
     }, []);
+
+    const fetchTitles = async () => {
+        try {
+            const res = await fetch(`${API_URL}/api/titles`);
+            if (!res.ok) return;
+            const data = await res.json();
+            setTitles(Array.isArray(data) ? data : []);
+        } catch (err) {
+            logger.error("erro ao carregar titulos", { message: err.message });
+        }
+    };
 
     const fetchEnemies = async () => {
         try {
@@ -75,6 +89,7 @@ export default function Enemies() {
         const inimigo = {
             name: characterName,
             type: "enemy",
+            titleId: characterTitleId === "" ? null : Number(characterTitleId),
             maxHp: characterMaxHp === "" ? undefined : Number(characterMaxHp),
             actualHp: characterMaxHp === "" ? undefined : Number(characterMaxHp),
             xp: characterXp === "" ? 0 : Number(characterXp),
@@ -119,6 +134,7 @@ export default function Enemies() {
             setCharacterLevel("");
             setCharacterPillarXp("");
             setCharacterPillarLevel("");
+            setCharacterTitleId("");
             setShowModal(false);
 
             await fetchEnemies();
@@ -181,6 +197,18 @@ export default function Enemies() {
                                         setCharacterName(e.target.value)
                                     }
                                 />
+                            </div>
+                            <div className="form-field">
+                                <label>Título</label>
+                                <select
+                                    value={characterTitleId}
+                                    onChange={(e) => setCharacterTitleId(e.target.value)}
+                                >
+                                    <option value="">Sem título</option>
+                                    {titles.map((t) => (
+                                        <option key={t.id} value={t.id}>{t.nome}</option>
+                                    ))}
+                                </select>
                             </div>
                             <div className="form-row">
                                 <div className="form-field">

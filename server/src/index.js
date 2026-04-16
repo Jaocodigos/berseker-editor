@@ -16,6 +16,7 @@ import adventureMiddleware from './middleware/adventure.js'
 import authRouter from './routes/auth.js'
 import usersRouter from './routes/users.js'
 import adventuresRouter from './routes/adventures.js'
+import titlesRouter from './routes/titles.js'
 import { rollDice } from './utils/dice.js'
 import { saveRoll, getRolls } from './store/diceRolls.js'
 
@@ -119,6 +120,10 @@ app.post('/api/adventures/deselect', (req, res) => {
 
 app.use(adventureMiddleware)
 
+// ================= Titles =================
+
+app.use('/api/titles', titlesRouter)
+
 // ================= Characters =================
 
 app.get("/api/characters", async (req, res, next) => {
@@ -140,7 +145,7 @@ app.get("/api/characters", async (req, res, next) => {
 
         const list = await prisma.character.findMany({
             where,
-            include: { pillars: { include: { abilities: true }} }
+            include: { pillars: { include: { abilities: true }}, title: true }
         });
         res.json(list);
     } catch (e) { next(e); }
@@ -150,7 +155,7 @@ app.get('/api/characters/:id', async (req, res, next) => {
     try {
         const id = Number(req.params.id)
         const char = await prisma.character.findUnique({ where: { id },
-            include: { pillars: { include: { abilities: true }}} })
+            include: { pillars: { include: { abilities: true }}, title: true } })
         if (!char || char.adventureId !== req.adventure.id) return res.status(404).json({ error: 'Personagem não encontrado' })
         res.json(char)
     } catch (e) { next(e) }
@@ -158,7 +163,7 @@ app.get('/api/characters/:id', async (req, res, next) => {
 
 app.post('/api/characters', async (req, res, next) => {
     try {
-        const { name, type = 'player_character', maxHp, actualHp, hp, pillars = [], xp = 0, level = 1, pillarXp = 0, pillarLevel = 1 } = req.body;
+        const { name, type = 'player_character', maxHp, actualHp, hp, pillars = [], xp = 0, level = 1, pillarXp = 0, pillarLevel = 1, titleId = null } = req.body;
 
         if (!name) return res.status(400).json({ error: 'name e obrigatorio' });
 
@@ -172,6 +177,19 @@ app.post('/api/characters', async (req, res, next) => {
 
         if (pillars.length > 3) {
             return res.status(400).json({ error: 'um personagem pode ter no maximo 3 pilares' });
+        }
+
+        let resolvedTitleId = null;
+        if (titleId !== null && titleId !== undefined && titleId !== '') {
+            const parsedTitleId = Number(titleId);
+            if (!Number.isFinite(parsedTitleId)) {
+                return res.status(400).json({ error: 'titleId deve ser um numero valido' });
+            }
+            const title = await prisma.title.findUnique({ where: { id: parsedTitleId } });
+            if (!title || title.adventureId !== req.adventure.id) {
+                return res.status(400).json({ error: 'Titulo nao encontrado nesta aventura' });
+            }
+            resolvedTitleId = parsedTitleId;
         }
 
         const resolvedMaxHp = maxHp ?? hp;
@@ -247,6 +265,7 @@ app.post('/api/characters', async (req, res, next) => {
                 nome: name,
                 type,
                 adventureId: req.adventure.id,
+                titleId: resolvedTitleId,
                 maxHp: maxHpValue,
                 actualHp: actualHpValue,
                 xp: xpValue,
@@ -257,7 +276,7 @@ app.post('/api/characters', async (req, res, next) => {
                     create: pillarPayload
                 }
             },
-            include: { pillars: true }
+            include: { pillars: true, title: true }
         });
 
         logger.info('personagem criado', { id: createdCharacter.id, nome: createdCharacter.nome, requestId: req.requestId })
@@ -276,9 +295,24 @@ app.patch('/api/characters/:id', async (req, res, next) => {
         if (character.type === 'enemy' && req.adventureRole !== 'master') {
             return res.status(403).json({ error: 'Apenas o mestre pode editar inimigos' })
         }
-        const { name, maxHp, actualHp, hp, xp, level, pillarXp, pillarLevel } = req.body
+        const { name, maxHp, actualHp, hp, xp, level, pillarXp, pillarLevel, titleId } = req.body
         const data = {}
         if (name) data.nome = name
+        if (titleId !== undefined) {
+            if (titleId === null || titleId === '') {
+                data.titleId = null
+            } else {
+                const parsedTitleId = Number(titleId)
+                if (!Number.isFinite(parsedTitleId)) {
+                    return res.status(400).json({ error: 'titleId deve ser um numero valido' })
+                }
+                const title = await prisma.title.findUnique({ where: { id: parsedTitleId } })
+                if (!title || title.adventureId !== req.adventure.id) {
+                    return res.status(400).json({ error: 'Titulo nao encontrado nesta aventura' })
+                }
+                data.titleId = parsedTitleId
+            }
+        }
         if (maxHp !== undefined || hp !== undefined) {
             const parsedMaxHp = Number(maxHp ?? hp)
             if (!Number.isFinite(parsedMaxHp)) {
@@ -329,7 +363,8 @@ app.patch('/api/characters/:id', async (req, res, next) => {
         }
         const updated = await prisma.character.update({
             where: { id },
-            data
+            data,
+            include: { title: true }
         })
         res.json(updated)
     } catch (e) { next(e) }
@@ -648,7 +683,7 @@ app.get('/api/adventure/enemies', async (req, res, next) => {
         if (isMaster) {
             const enemies = await prisma.character.findMany({
                 where: { type: 'enemy', inAdventure: true, adventureId: req.adventure.id },
-                include: { pillars: { include: { abilities: true } } }
+                include: { pillars: { include: { abilities: true } }, title: true }
             })
             return res.json(enemies)
         }

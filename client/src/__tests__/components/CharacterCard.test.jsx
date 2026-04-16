@@ -147,6 +147,73 @@ describe('CharacterCard', () => {
         })
     })
 
+    it('exibe título com cor quando character.title existe', () => {
+        const charWithTitle = {
+            ...mockChar,
+            title: { id: 1, nome: 'Herói', color: '#FF0000' },
+        }
+        renderCard(charWithTitle)
+        const nameSpan = screen.getByText('Herói')
+        expect(nameSpan).toBeInTheDocument()
+        expect(nameSpan).toHaveStyle({ color: 'rgb(255, 0, 0)' })
+    })
+
+    it('não renderiza bloco de título quando character.title é nulo', () => {
+        renderCard()
+        expect(screen.queryByText(/Título:/)).not.toBeInTheDocument()
+    })
+
+    it('envia titleId no PATCH ao salvar edição com título selecionado', async () => {
+        const titles = [
+            { id: 5, nome: 'Herói', color: '#FF0000' },
+            { id: 6, nome: 'Vilão', color: '#000000' },
+        ]
+        global.fetch = vi.fn().mockImplementation((url) => {
+            if (typeof url === 'string' && url.endsWith('/api/titles')) {
+                return Promise.resolve({ ok: true, json: () => Promise.resolve(titles) })
+            }
+            return Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve({}) })
+        })
+        const onRefresh = vi.fn()
+        renderCard(mockChar, onRefresh)
+        const buttons = screen.getAllByRole('button')
+        await userEvent.click(buttons[1])
+
+        const select = await screen.findByRole('combobox')
+        await waitFor(() => expect(screen.getByText('Herói')).toBeInTheDocument())
+        await userEvent.selectOptions(select, '5')
+
+        await userEvent.click(screen.getByText('Salvar'))
+
+        await waitFor(() => {
+            const patchCall = vi.mocked(fetch).mock.calls.find(([, opts]) => opts?.method === 'PATCH')
+            expect(patchCall).toBeDefined()
+            const body = JSON.parse(patchCall[1].body)
+            expect(body.titleId).toBe(5)
+        })
+    })
+
+    it('envia titleId null ao escolher "Sem título"', async () => {
+        global.fetch = vi.fn().mockImplementation((url) => {
+            if (typeof url === 'string' && url.endsWith('/api/titles')) {
+                return Promise.resolve({ ok: true, json: () => Promise.resolve([]) })
+            }
+            return Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve({}) })
+        })
+        renderCard(mockChar)
+        const buttons = screen.getAllByRole('button')
+        await userEvent.click(buttons[1])
+
+        await userEvent.click(screen.getByText('Salvar'))
+
+        await waitFor(() => {
+            const patchCall = vi.mocked(fetch).mock.calls.find(([, opts]) => opts?.method === 'PATCH')
+            expect(patchCall).toBeDefined()
+            const body = JSON.parse(patchCall[1].body)
+            expect(body.titleId).toBeNull()
+        })
+    })
+
     it('adiciona e remove pilar na edição', async () => {
         renderCard()
         const buttons = screen.getAllByRole('button')

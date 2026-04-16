@@ -9,6 +9,7 @@ const { mockPrisma } = vi.hoisted(() => ({
         ability: { findMany: vi.fn(), findUnique: vi.fn(), create: vi.fn(), delete: vi.fn() },
         adventureUser: { findUnique: vi.fn() },
         adventure: { findUnique: vi.fn() },
+        title: { findUnique: vi.fn() },
     },
 }))
 
@@ -152,6 +153,28 @@ describe('Characters Routes', () => {
             expect(res.status).toBe(201)
         })
 
+        it('cria personagem com titleId valido da aventura', async () => {
+            mockPrisma.title.findUnique.mockResolvedValue({ id: 4, adventureId: ADV_ID })
+            mockPrisma.character.create.mockResolvedValue({ id: 1, nome: 'Hero', adventureId: ADV_ID, titleId: 4, pillars: [] })
+            const res = await withAuth(
+                request(app).post('/api/characters').send({ name: 'Hero', titleId: 4 })
+            )
+            expect(res.status).toBe(201)
+            expect(mockPrisma.character.create).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    data: expect.objectContaining({ titleId: 4 }),
+                })
+            )
+        })
+
+        it('retorna 400 quando titleId pertence a outra aventura', async () => {
+            mockPrisma.title.findUnique.mockResolvedValue({ id: 4, adventureId: 999 })
+            const res = await withAuth(
+                request(app).post('/api/characters').send({ name: 'Hero', titleId: 4 })
+            )
+            expect(res.status).toBe(400)
+        })
+
         it('retorna 400 ao enviar mais de 3 pilares', async () => {
             const res = await withAuth(
                 request(app).post('/api/characters').send({
@@ -206,6 +229,41 @@ describe('Characters Routes', () => {
                 request(app).patch('/api/characters/2').send({ name: 'Orc' })
             )
             expect(res.status).toBe(200)
+        })
+
+        it('atualiza titleId com titulo da aventura', async () => {
+            mockPrisma.title.findUnique.mockResolvedValue({ id: 5, adventureId: ADV_ID })
+            mockPrisma.character.update.mockResolvedValue({ ...pcChar, titleId: 5 })
+            const res = await withAuth(
+                request(app).patch('/api/characters/1').send({ titleId: 5 })
+            )
+            expect(res.status).toBe(200)
+            expect(mockPrisma.character.update).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    data: expect.objectContaining({ titleId: 5 }),
+                })
+            )
+        })
+
+        it('remove titulo quando titleId = null', async () => {
+            mockPrisma.character.update.mockResolvedValue({ ...pcChar, titleId: null })
+            const res = await withAuth(
+                request(app).patch('/api/characters/1').send({ titleId: null })
+            )
+            expect(res.status).toBe(200)
+            expect(mockPrisma.character.update).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    data: expect.objectContaining({ titleId: null }),
+                })
+            )
+        })
+
+        it('retorna 400 quando titleId pertence a outra aventura', async () => {
+            mockPrisma.title.findUnique.mockResolvedValue({ id: 5, adventureId: 999 })
+            const res = await withAuth(
+                request(app).patch('/api/characters/1').send({ titleId: 5 })
+            )
+            expect(res.status).toBe(400)
         })
     })
 

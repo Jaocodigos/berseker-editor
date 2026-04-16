@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Modal from "./Modal";
 import { FireIcon, TrashIcon, PencilSquareIcon } from '@heroicons/react/16/solid'
 import { useNavigate } from "react-router-dom";
@@ -11,17 +11,26 @@ export default function CharacterCard({ character, onRefresh }) {
     const pillars = character.pillars || [];
     const navigate = useNavigate();
 
-    console.log(`ABILITIES: ${JSON.stringify(pillars)}`)
-
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [showEditModal, setShowEditModal] = useState(false);
     const [editData, setEditData] = useState(null);
     const [deletedPillarIds, setDeletedPillarIds] = useState([]);
     const [editSaving, setEditSaving] = useState(false);
+    const [titles, setTitles] = useState([]);
+
+    useEffect(() => {
+        let cancelled = false;
+        fetch(`${API_URL}/api/titles`)
+            .then((res) => res.ok ? res.json() : [])
+            .then((data) => { if (!cancelled) setTitles(Array.isArray(data) ? data : []) })
+            .catch(() => {});
+        return () => { cancelled = true };
+    }, []);
 
     function openEditModal() {
         setEditData({
             nome: character.nome,
+            titleId: character.titleId ?? character.title?.id ?? '',
             maxHp: character.maxHp ?? 0,
             actualHp: character.actualHp ?? 0,
             xp: character.xp ?? 0,
@@ -77,6 +86,7 @@ export default function CharacterCard({ character, onRefresh }) {
                 headers: { 'Content-Type': 'application/json', ...authHeader },
                 body: JSON.stringify({
                     name: editData.nome,
+                    titleId: editData.titleId === '' ? null : Number(editData.titleId),
                     maxHp: Number(editData.maxHp),
                     actualHp: Number(editData.actualHp),
                     xp: Number(editData.xp),
@@ -149,6 +159,13 @@ export default function CharacterCard({ character, onRefresh }) {
         <div className={`character-card${showDeleteModal || showEditModal ? " modal-open" : ""}`}>
             <h3>{character.nome}</h3>
 
+            {character.title && (
+                <p className="character-title">
+                    <span className="character-title-label" style={{ color: character.title.color }}>Título:</span>{' '}
+                    <span className="character-title-name" style={{ color: character.title.color }}>{character.title.nome}</span>
+                </p>
+            )}
+
             {pillars.length > 0 ? (
                 <ul className="pillars-list">
                     {pillars.map((p) => (
@@ -218,6 +235,18 @@ export default function CharacterCard({ character, onRefresh }) {
                                 value={editData.nome}
                                 onChange={(e) => updateEditField('nome', e.target.value)}
                             />
+                        </div>
+                        <div className="form-field">
+                            <label>Título</label>
+                            <select
+                                value={editData.titleId}
+                                onChange={(e) => updateEditField('titleId', e.target.value)}
+                            >
+                                <option value="">Sem título</option>
+                                {titles.map((t) => (
+                                    <option key={t.id} value={t.id}>{t.nome}</option>
+                                ))}
+                            </select>
                         </div>
                         <div className="form-row">
                             <div className="form-field">

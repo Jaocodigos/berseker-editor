@@ -9,6 +9,7 @@ import Adventure from "./pages/Adventure";
 import Abilities from "./pages/Abilities";
 import Login from "./pages/Login";
 import Enemies from "./pages/Enemies";
+import Titles from "./pages/Titles";
 import AdventureSelect from "./pages/AdventureSelect";
 
 function NavBar() {
@@ -73,6 +74,7 @@ function NavBar() {
                 <NavLink to="/characters" className={({ isActive }) => isActive ? "rpg-nav-link active" : "rpg-nav-link"} onClick={closeMenu}>Personagens</NavLink>
                 <NavLink to="/adventure" className={({ isActive }) => isActive ? "rpg-nav-link active" : "rpg-nav-link"} onClick={closeMenu}>Aventura</NavLink>
                 {isMaster && <NavLink to="/enemies" className={({ isActive }) => isActive ? "rpg-nav-link active" : "rpg-nav-link"} onClick={closeMenu}>Inimigos</NavLink>}
+                {isMaster && <NavLink to="/titles" className={({ isActive }) => isActive ? "rpg-nav-link active" : "rpg-nav-link"} onClick={closeMenu}>Títulos</NavLink>}
                 {currentAdventure && (
                     adventures.length > 1 ? (
                         <div className="rpg-nav-adv" ref={advRef}>
@@ -122,6 +124,7 @@ export default function App() {
                                 <Route path="/characters" element={<ProtectedRoute><Characters /></ProtectedRoute>} />
                                 <Route path="/adventure" element={<ProtectedRoute><Adventure /></ProtectedRoute>} />
                                 <Route path="/enemies" element={<ProtectedRoute masterOnly><Enemies /></ProtectedRoute>} />
+                                <Route path="/titles" element={<ProtectedRoute masterOnly><Titles /></ProtectedRoute>} />
                                 <Route path="/characters/:characterId/abilities" element={<ProtectedRoute><Abilities /></ProtectedRoute>} />
                             </Routes>
                         </main>

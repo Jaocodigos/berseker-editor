@@ -21,6 +21,8 @@ model Character {
   pillars     Pillar[]
   adventure   Adventure @relation(fields: [adventureId], references: [id], onDelete: Cascade)
   adventureId Int       @map("adventure_id")
+  title       Title?    @relation(fields: [titleId], references: [id], onDelete: SetNull)
+  titleId     Int?      @map("title_id")
 
   @@map("characters")
 }
@@ -67,8 +69,20 @@ model Adventure {
   createdAt  DateTime        @default(now()) @map("created_at")
   users      AdventureUser[]
   characters Character[]
+  titles     Title[]
 
   @@map("adventures")
+}
+
+model Title {
+  id          Int         @id @default(autoincrement())
+  nome        String
+  color       String      // "#RRGGBB"
+  adventure   Adventure   @relation(fields: [adventureId], references: [id], onDelete: Cascade)
+  adventureId Int         @map("adventure_id")
+  characters  Character[]
+
+  @@map("titles")
 }
 
 model AdventureUser {

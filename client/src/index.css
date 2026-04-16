@@ -571,6 +571,21 @@ button:focus-visible {
   color: #f3f1f1;
 }
 
+.character-title {
+  margin: -4px 0 8px;
+  font-size: 0.85rem;
+  letter-spacing: 0.03em;
+}
+
+.character-title-label {
+  font-weight: 600;
+  opacity: 0.85;
+}
+
+.character-title-name {
+  font-weight: 700;
+}
+
 .character-card .action-section {
   justify-content: center;
   margin-top: 12px;
