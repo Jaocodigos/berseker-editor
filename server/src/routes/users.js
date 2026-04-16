@@ -13,30 +13,38 @@ router.use(adminAuth)
 router.get('/', async (req, res, next) => {
     try {
         const users = await prisma.user.findMany({
-            select: { id: true, username: true, role: true, createdAt: true }
+            select: {
+                id: true,
+                username: true,
+                createdAt: true,
+                adventures: {
+                    include: { adventure: { select: { id: true, nome: true } } }
+                }
+            }
         })
-        res.json(users)
+        res.json(users.map(u => ({
+            id: u.id,
+            username: u.username,
+            createdAt: u.createdAt,
+            adventures: u.adventures.map(a => ({ id: a.adventure.id, nome: a.adventure.nome, role: a.role }))
+        })))
     } catch (e) { next(e) }
 })
 
 // Criar usuário
 router.post('/', async (req, res, next) => {
     try {
-        const { username, password, role } = req.body
+        const { username, password } = req.body
 
         if (!username || !password) {
             return res.status(400).json({ error: 'username e password são obrigatórios' })
         }
 
-        if (role && !['player', 'master'].includes(role)) {
-            return res.status(400).json({ error: 'role deve ser "player" ou "master"' })
-        }
-
         const passwordHash = await bcrypt.hash(password, 10)
 
         const user = await prisma.user.create({
-            data: { username, passwordHash, ...(role && { role }) },
-            select: { id: true, username: true, role: true, createdAt: true }
+            data: { username, passwordHash },
+            select: { id: true, username: true, createdAt: true }
         })
 
         logger.info('usuario criado', { id: user.id, username: user.username })
@@ -54,26 +62,20 @@ router.post('/', async (req, res, next) => {
 router.patch('/:id', async (req, res, next) => {
     try {
         const id = Number(req.params.id)
-        const { username, password, role } = req.body
+        const { username, password } = req.body
         const data = {}
 
         if (username) data.username = username
         if (password) data.passwordHash = await bcrypt.hash(password, 10)
-        if (role) {
-            if (!['player', 'master'].includes(role)) {
-                return res.status(400).json({ error: 'role deve ser "player" ou "master"' })
-            }
-            data.role = role
-        }
 
         if (!Object.keys(data).length) {
-            return res.status(400).json({ error: 'username, password ou role são obrigatórios' })
+            return res.status(400).json({ error: 'username ou password sao obrigatorios' })
         }
 
         const user = await prisma.user.update({
             where: { id },
             data,
-            select: { id: true, username: true, role: true, createdAt: true }
+            select: { id: true, username: true, createdAt: true }
         })
 
         logger.info('usuario atualizado', { id: user.id, username: user.username, campos: Object.keys(data).join(',') })

@@ -47,6 +47,55 @@ describe('Characters Page', () => {
         expect(screen.getByText('Adicionar Personagem')).toBeInTheDocument()
     })
 
+    it('carrega títulos e popula o select do formulário', async () => {
+        const titles = [
+            { id: 5, nome: 'Herói', color: '#ff0000' },
+            { id: 6, nome: 'Vilão', color: '#000000' },
+        ]
+        global.fetch = vi.fn().mockImplementation((url) => {
+            if (typeof url === 'string' && url.endsWith('/api/titles')) {
+                return Promise.resolve({ ok: true, json: () => Promise.resolve(titles) })
+            }
+            return Promise.resolve({ ok: true, json: () => Promise.resolve([]) })
+        })
+        render(<MemoryRouter><Characters /></MemoryRouter>)
+        const plusBtn = await screen.findByRole('button')
+        await userEvent.click(plusBtn)
+        await waitFor(() => {
+            expect(screen.getByText('Sem título')).toBeInTheDocument()
+            expect(screen.getByRole('option', { name: 'Herói' })).toBeInTheDocument()
+            expect(screen.getByRole('option', { name: 'Vilão' })).toBeInTheDocument()
+        })
+    })
+
+    it('envia titleId no POST quando título é selecionado', async () => {
+        const titles = [{ id: 5, nome: 'Herói', color: '#ff0000' }]
+        global.fetch = vi.fn().mockImplementation((url, opts) => {
+            if (typeof url === 'string' && url.endsWith('/api/titles')) {
+                return Promise.resolve({ ok: true, json: () => Promise.resolve(titles) })
+            }
+            if (opts?.method === 'POST') {
+                return Promise.resolve({ ok: true, json: () => Promise.resolve({ id: 9, nome: 'Hero', titleId: 5 }) })
+            }
+            return Promise.resolve({ ok: true, json: () => Promise.resolve([]) })
+        })
+        render(<MemoryRouter><Characters /></MemoryRouter>)
+        await userEvent.click(await screen.findByRole('button'))
+
+        await userEvent.type(screen.getByPlaceholderText('Nome do personagem'), 'Hero')
+        const select = await screen.findByRole('combobox')
+        await waitFor(() => expect(screen.getByRole('option', { name: 'Herói' })).toBeInTheDocument())
+        await userEvent.selectOptions(select, '5')
+        await userEvent.click(screen.getByText('Salvar'))
+
+        await waitFor(() => {
+            const postCall = vi.mocked(fetch).mock.calls.find(([, o]) => o?.method === 'POST')
+            expect(postCall).toBeDefined()
+            const body = JSON.parse(postCall[1].body)
+            expect(body.titleId).toBe(5)
+        })
+    })
+
     it('chama POST ao submeter o formulário de criação', async () => {
         const created = { id: 3, nome: 'Gandalf', maxHp: 120, actualHp: 120, pillars: [] }
         global.fetch = vi.fn()

@@ -37,12 +37,23 @@ describe('Users Routes (/api/users)', () => {
             expect(res.status).toBe(403)
         })
 
-        it('retorna lista de usuários', async () => {
-            const users = [{ id: 1, username: 'admin', createdAt: '2026-01-01T00:00:00.000Z' }]
-            mockPrisma.user.findMany.mockResolvedValue(users)
+        it('retorna lista de usuários com aventuras', async () => {
+            mockPrisma.user.findMany.mockResolvedValue([
+                {
+                    id: 1, username: 'admin', createdAt: '2026-01-01T00:00:00.000Z',
+                    adventures: [
+                        { role: 'master', adventure: { id: 7, nome: 'main' } },
+                    ],
+                },
+            ])
             const res = await withAdmin(request(app).get('/api/users'))
             expect(res.status).toBe(200)
-            expect(res.body).toEqual(users)
+            expect(res.body).toEqual([{
+                id: 1,
+                username: 'admin',
+                createdAt: '2026-01-01T00:00:00.000Z',
+                adventures: [{ id: 7, nome: 'main', role: 'master' }],
+            }])
         })
     })
 

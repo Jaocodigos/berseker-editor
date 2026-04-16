@@ -40,13 +40,11 @@ export function AuthProvider({ children }) {
         setCredentials(null)
     }, [])
 
-    const isMaster = credentials?.role === 'master'
-
     // authHeader mantido como {} para compatibilidade — cookies são enviados automaticamente
     const authHeader = {}
 
     return (
-        <AuthContext.Provider value={{ credentials, login, logout, authHeader, loading, isMaster }}>
+        <AuthContext.Provider value={{ credentials, login, logout, authHeader, loading }}>
             {children}
         </AuthContext.Provider>
     )

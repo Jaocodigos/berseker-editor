@@ -2,10 +2,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { PlusIcon, XMarkIcon } from "@heroicons/react/16/solid";
 import Modal from "../components/Modal";
 import { useAuth } from "../context/AuthContext";
+import { useAdventure } from "../context/AdventureContext";
 import logger, { API_URL } from "../logger";
 
 export default function Adventure() {
-    const { authHeader, isMaster } = useAuth()
+    const { authHeader } = useAuth()
+    const { isMaster } = useAdventure()
     const [availableCharacters, setAvailableCharacters] = useState([]);
     const [characters, setCharacters] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -560,6 +562,14 @@ export default function Adventure() {
                             <div className="adventure-card-name">
                                 <div>
                                     <h3>{character.nome || "Sem nome"}</h3>
+                                    {character.title && (
+                                        <span
+                                            className="character-title-badge"
+                                            style={{ color: character.title.color, borderColor: character.title.color }}
+                                        >
+                                            {character.title.nome}
+                                        </span>
+                                    )}
                                     <p className="muted">Pronto para a aventura.</p>
                                 </div>
                                 <button
@@ -793,29 +803,40 @@ export default function Adventure() {
                                 className={`adventure-card adventure-card--enemy${highlightedEnemyIds.has(enemy.id) ? " enemy-highlight" : ""}`}
                                 key={enemy.id}
                             >
-                                <div className="adventure-card-header">
+                                <div className="adventure-card-name">
                                     <div>
                                         <h3>{enemy.nome || "Sem nome"}</h3>
                                         <span className="enemy-badge">Inimigo</span>
+                                        {enemy.title && (
+                                            <span
+                                                className="character-title-badge"
+                                                style={{ color: enemy.title.color, borderColor: enemy.title.color }}
+                                            >
+                                                {enemy.title.nome}
+                                            </span>
+                                        )}
                                     </div>
                                     {isMaster && (
-                                        <>
-                                            <div className={`adventure-hp${enemyRestHighlightId === enemy.id ? " rest-highlight" : ""}`}>
-                                                <span>HP</span>
-                                                <strong>{enemy.actualHp ?? "--"}/{enemy.maxHp ?? "--"}</strong>
-                                            </div>
-                                            <button
-                                                className="adventure-remove-icon"
-                                                onClick={() => handleRemoveFromAdventure(enemy.id)}
-                                                title="Remover da aventura"
-                                                aria-label="Remover da aventura"
-                                                type="button"
-                                            >
-                                                ✖
-                                            </button>
-                                        </>
+                                        <button
+                                            className="adventure-remove-icon"
+                                            onClick={() => handleRemoveFromAdventure(enemy.id)}
+                                            title="Remover da aventura"
+                                            aria-label="Remover da aventura"
+                                            type="button"
+                                        >
+                                            ✖
+                                        </button>
                                     )}
                                 </div>
+
+                                {isMaster && (
+                                    <div className="adventure-card-stats">
+                                        <div className={`adventure-hp${enemyRestHighlightId === enemy.id ? " rest-highlight" : ""}`}>
+                                            <span>HP</span>
+                                            <strong>{enemy.actualHp ?? "--"}/{enemy.maxHp ?? "--"}</strong>
+                                        </div>
+                                    </div>
+                                )}
 
                                 {diceResults[enemy.id] && (
                                     <div className="dice-roll-flash">

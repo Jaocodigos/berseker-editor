@@ -5,7 +5,11 @@ import { MemoryRouter } from 'react-router-dom'
 import Adventure from '../../pages/Adventure'
 
 vi.mock('../../context/AuthContext', () => ({
-    useAuth: () => ({ authHeader: { Authorization: 'Basic dXNlcjpwYXNz' }, isMaster: false }),
+    useAuth: () => ({ authHeader: { Authorization: 'Basic dXNlcjpwYXNz' } }),
+}))
+
+vi.mock('../../context/AdventureContext', () => ({
+    useAdventure: () => ({ isMaster: false, currentAdventure: { id: 1, nome: 'main', role: 'player' } }),
 }))
 
 const mockCharacter = {

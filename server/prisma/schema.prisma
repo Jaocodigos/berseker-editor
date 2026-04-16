@@ -8,19 +8,23 @@ generator client {
 }
 
 model Character {
-  id          Int      @id @default(autoincrement())
+  id          Int        @id @default(autoincrement())
   nome        String
-  type        String   @default("player_character") // "player_character" | "enemy"
-  inAdventure Boolean  @default(false) @map("in_adventure")
-  maxHp       Int      @default(0) @map("max_hp")
-  actualHp    Int      @default(0) @map("actual_hp")
-  xp          Int      @default(0)
-  level       Int      @default(1)
-  pillarXp    Int      @default(0) @map("pillar_xp")
-  pillarLevel Int      @default(1) @map("pillar_level")
-  pillars     Pillar[]  // um personagem pode ter vários pilares (até 3 na lógica da aplicação)
+  type        String     @default("player_character") // "player_character" | "enemy"
+  inAdventure Boolean    @default(false) @map("in_adventure")
+  maxHp       Int        @default(0) @map("max_hp")
+  actualHp    Int        @default(0) @map("actual_hp")
+  xp          Int        @default(0)
+  level       Int        @default(1)
+  pillarXp    Int        @default(0) @map("pillar_xp")
+  pillarLevel Int        @default(1) @map("pillar_level")
+  pillars     Pillar[]
+  adventure   Adventure @relation(fields: [adventureId], references: [id], onDelete: Cascade)
+  adventureId Int       @map("adventure_id")
+  title       Title?    @relation(fields: [titleId], references: [id], onDelete: SetNull)
+  titleId     Int?      @map("title_id")
 
-  @@map("characters") // renomeia a tabela no banco para "characters"
+  @@map("characters")
 }
 
 model Pillar {
@@ -49,14 +53,48 @@ model Ability {
 }
 
 model User {
-  id           Int       @id @default(autoincrement())
-  username     String    @unique
-  passwordHash String    @map("password_hash")
-  role         String    @default("player") // "player" | "master"
-  createdAt    DateTime  @default(now()) @map("created_at")
+  id           Int             @id @default(autoincrement())
+  username     String          @unique
+  passwordHash String          @map("password_hash")
+  createdAt    DateTime        @default(now()) @map("created_at")
   sessions     Session[]
+  adventures   AdventureUser[]
 
   @@map("users")
+}
+
+model Adventure {
+  id         Int             @id @default(autoincrement())
+  nome       String
+  createdAt  DateTime        @default(now()) @map("created_at")
+  users      AdventureUser[]
+  characters Character[]
+  titles     Title[]
+
+  @@map("adventures")
+}
+
+model Title {
+  id          Int         @id @default(autoincrement())
+  nome        String
+  color       String      // "#RRGGBB"
+  adventure   Adventure   @relation(fields: [adventureId], references: [id], onDelete: Cascade)
+  adventureId Int         @map("adventure_id")
+  characters  Character[]
+
+  @@map("titles")
+}
+
+model AdventureUser {
+  id          Int       @id @default(autoincrement())
+  role        String    @default("player") // "player" | "master"
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId      Int       @map("user_id")
+  adventure   Adventure @relation(fields: [adventureId], references: [id], onDelete: Cascade)
+  adventureId Int       @map("adventure_id")
+
+  @@unique([userId, adventureId])
+  @@map("adventure_users")
 }
 
 model Session {
