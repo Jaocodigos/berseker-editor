@@ -1,9 +1,11 @@
 import { useState, useEffect } from "react";
 import CharacterCard from "../components/CharacterCard";
+import CharacterFilter from "../components/CharacterFilter";
 import { TrashIcon } from '@heroicons/react/16/solid'
 import {PlusIcon} from "@heroicons/react/16/solid/index.js";
 import { useAuth } from "../context/AuthContext";
 import logger, { API_URL } from "../logger";
+import { filterCharacters } from "../utils/filterCharacters";
 
 export default function Characters() {
     const { authHeader } = useAuth()
@@ -18,6 +20,7 @@ export default function Characters() {
     const [characterTitleId, setCharacterTitleId] = useState("");
     const [characters, setCharacters] = useState([]);
     const [titles, setTitles] = useState([]);
+    const [filters, setFilters] = useState({ name: "", titleIds: [] });
 
     useEffect(() => {
         fetchCharacters();
@@ -124,14 +127,30 @@ export default function Characters() {
         <div style={{ textAlign: "center", padding: "2rem" }}>
             <p>Veja a lista de personagens e crie habilidades.</p>
 
-            <button className="rpg-button add-button" onClick={() => setShowModal(true)}>
+            <button
+                className="rpg-button add-button"
+                aria-label="Adicionar personagem"
+                onClick={() => setShowModal(true)}
+            >
                 <PlusIcon className="size-6 rpg-icon bg add-icon" />
             </button>
 
+            <CharacterFilter
+                titles={titles}
+                filters={filters}
+                onFiltersChange={setFilters}
+            />
+
             <div className="characters-list">
-                {characters.map((char) => (
-                    <CharacterCard key={char.id} character={char} onRefresh={fetchCharacters} />
-                ))}
+                {(() => {
+                    const visible = filterCharacters(characters, filters);
+                    if (visible.length === 0) {
+                        return <p className="filter-empty">Nenhum personagem encontrado.</p>;
+                    }
+                    return visible.map((char) => (
+                        <CharacterCard key={char.id} character={char} onRefresh={fetchCharacters} />
+                    ));
+                })()}
             </div>
 
             {showModal && (
