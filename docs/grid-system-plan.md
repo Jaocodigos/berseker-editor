@@ -6,8 +6,9 @@ Adicionar um sistema de grid similar ao Roll20 (versao simplificada) para a pagi
 O objetivo e ter um mapa com tokens de personagens que podem ser movidos em tempo real por todos os jogadores conectados.
 
 ### Escopo incluso
-- Mapa com imagem de fundo (upload) e grid sobreposto com tamanho padrao fixo
-- Tokens de personagens com imagem, posicionados nas celulas do grid
+- Canvas minimalista com fundo liso + linhas do grid, tudo desenhado no frontend (sem imagem de fundo)
+- Grid com tamanho padrao fixo (ex: 20x15 celulas)
+- Tokens de personagens com avatar (imagem), posicionados nas celulas do grid
 - Drag & drop com snap-to-grid
 - Sincronizacao em tempo real via WebSocket (Socket.IO)
 - Qualquer jogador pode mover qualquer token
@@ -30,7 +31,7 @@ O objetivo e ter um mapa com tokens de personagens que podem ser movidos em temp
 ### Integracao com a Adventure
 - O grid sera uma secao dentro da pagina de Adventure, coexistindo com os cards de personagem.
 - Havera dois modos: **grid expandido** (cards ficam em uma barra lateral compacta com botao para expandir) e **cards expandidos** (grid minimizado ou oculto).
-- A barra lateral compacta mostra informacoes resumidas dos personagens.
+- A barra lateral compacta mostra **nome + HP (atual/maximo)** do personagem. Sem mana/pilares (cabe no card expandido). Clicar no item da sidebar expande aquele personagem (ou abre modal).
 
 ### Controle de tokens
 - Qualquer jogador conectado pode mover qualquer token. Sem restricao por dono.
@@ -41,12 +42,22 @@ O objetivo e ter um mapa com tokens de personagens que podem ser movidos em temp
 - A imagem e associada ao personagem, nao ao token em si.
 
 ### Mapa
-- Tamanho do grid **fixo/padrao** (ex: 20x15 celulas). O mestre escolhe uma imagem que se adeque a esse tamanho.
-- Imagem do mapa via **upload de arquivo** (nao URL externa).
+- **3 presets de tamanho** selecionaveis na criacao:
+
+  | Preset | Dimensoes | Celulas | Uso tipico |
+  |---|---|---|---|
+  | `small`  | 15 × 10 | 150 | combates rapidos, masmorra, arena |
+  | `medium` (padrao) | 20 × 15 | 300 | encontros normais |
+  | `large`  | 30 × 20 | 600 | campo aberto, cenas epicas |
+
+  Proporcao ~3:2 (landscape) em todos os presets. O usuario nao informa `gridWidth/Height` diretamente — o server traduz o preset nos valores corretos. Isso evita inputs arbitrarios e mantem a UI em botoes segmentados.
+- **Sem imagem de fundo**: o canvas renderiza um fundo liso (cor hardcoded, ex: `#1c1c24` pra bater com o tema) e desenha as linhas do grid por cima. Nada de upload ou asset externo pra mapa.
 - Apenas **um mapa ativo** por sessao. O mestre troca quando muda de cenario.
 
 ### Troca de mapa
 - Ao trocar o mapa ativo, os tokens **nao sao reposicionados automaticamente**. O mestre posiciona manualmente cada personagem no novo mapa.
+- **Tokens do mapa anterior sao deletados** ao ativar um novo mapa (cascade controlado via rota `activate`). Nao mantemos historico de posicoes — se o mestre voltar para o mapa antigo, comeca vazio.
+- **Redirecionamento automatico**: ao ativar um mapa, o server emite `grid:activated` via Socket.IO para todos os clientes conectados da sessao. Os clientes trocam a sala do Socket.IO e recarregam o estado do novo mapa sem acao do usuario.
 
 ### Mobile
 - O grid deve ser **visivel e funcional** em mobile, incluindo arrastar tokens por touch.
@@ -84,7 +95,6 @@ Novos modelos:
 model GameMap {
   id         Int      @id @default(autoincrement())
   nome       String
-  imageUrl   String   @map("image_url") @db.Text
   gridWidth  Int      @default(20) @map("grid_width")
   gridHeight Int      @default(15) @map("grid_height")
   cellSize   Int      @default(40) @map("cell_size")
@@ -115,15 +125,14 @@ Alteracoes em modelos existentes:
 
 ---
 
-### Etapa 2 — Upload de arquivos
+### Etapa 2 — Upload de avatares
 
-Sistema de upload para imagens de mapa e avatares de personagem.
+Sistema de upload apenas para avatares de personagem (usados nos tokens). Mapa nao usa asset.
 
 - Usar `multer` para processar multipart/form-data
-- Armazenar em `server/uploads/` (maps/, avatars/)
-- Servir estaticamente via Express (`/uploads/maps/...`, `/uploads/avatars/...`)
-- Rotas:
-  - `POST /api/upload/map` — upload de imagem do mapa, retorna URL
+- Armazenar em `server/uploads/avatars/`
+- Servir estaticamente via Express (`/uploads/avatars/...`)
+- Rota:
   - `POST /api/upload/avatar` — upload de avatar do personagem, retorna URL
 - Validacao: apenas imagens (jpg, png, webp), limite de tamanho
 
@@ -136,14 +145,26 @@ Sistema de upload para imagens de mapa e avatares de personagem.
 CRUD basico para gerenciar mapas e tokens (antes de implementar tempo real):
 
 - `GET    /api/maps`              — listar mapas
-- `POST   /api/maps`              — criar mapa (nome, imageUrl, gridWidth, gridHeight)
+- `POST   /api/maps`              — criar mapa. Body: `{ nome, size: "small" | "medium" | "large" }` (default: `"medium"`). Server deriva `gridWidth/Height` a partir do preset; rejeita size desconhecido com 400.
 - `GET    /api/maps/:id`          — obter mapa com tokens (include characters)
-- `PATCH  /api/maps/:id`          — editar mapa
+- `PATCH  /api/maps/:id`          — editar mapa (nome e/ou size; se size mudar, ver "Resize" abaixo)
 - `DELETE /api/maps/:id`          — deletar mapa
 - `POST   /api/maps/:id/tokens`   — adicionar token (characterId, posX, posY)
 - `DELETE /api/tokens/:id`         — remover token do mapa
 - `PATCH  /api/tokens/:id`         — atualizar posicao (usado como fallback/persistencia)
-- `POST   /api/maps/:id/activate` — ativar mapa (desativa o anterior)
+- `POST   /api/maps/:id/activate` — ativar mapa. Em transacao: (1) deleta todos os tokens do mapa anteriormente ativo, (2) marca o anterior `active: false`, (3) marca o novo `active: true`. Em seguida, emite `grid:activated` via Socket.IO para redirecionar os clientes.
+
+Constante server-side:
+
+```js
+const MAP_PRESETS = {
+  small:  { gridWidth: 15, gridHeight: 10 },
+  medium: { gridWidth: 20, gridHeight: 15 },
+  large:  { gridWidth: 30, gridHeight: 20 },
+};
+```
+
+**Resize de mapa existente** (`PATCH` com size diferente): tokens cuja posicao ultrapassa as novas dimensoes sao **clampados** para o limite (`posX = min(posX, newWidth - 1)`, mesmo para Y). Nao deleta tokens. Justificativa: evita perda acidental de configuracao quando o mestre troca de preset.
 
 **Dependencias**: Etapas 1 e 2.
 
@@ -170,10 +191,12 @@ Eventos:
 | `grid:move`     | Mover token (tokenId, posX, posY) | `grid:moved` (para todos na sala) |
 | `grid:add`      | Adicionar token ao mapa | `grid:added` |
 | `grid:remove`   | Remover token do mapa | `grid:removed` |
+| — (disparado pelo POST `/maps/:id/activate`) | — | `grid:activated` (broadcast global da sessao, com `{ mapId }`) |
 
 - Cada mapa e uma "sala" do Socket.IO (`socket.join(mapId)`)
 - Ao receber `grid:move`, persiste no banco via Prisma e emite `grid:moved` para a sala
 - Validacoes: token pertence ao mapa, posicao dentro dos limites do grid
+- **`grid:activated`**: quando o mestre ativa um mapa novo via REST, o handler emite para todos os sockets da sessao. No client, o handler do evento: sai da sala atual (`grid:leave`), entra na nova (`grid:join mapId`), busca o estado via `GET /api/maps/:id` e re-renderiza. Sem prompt/acao do usuario.
 
 **Dependencias**: Etapas 1 e 3.
 
@@ -184,10 +207,10 @@ Eventos:
 #### 5.1 — Componente `GridMap`
 
 - HTML5 `<canvas>` que renderiza:
-  1. Imagem de fundo (o mapa)
-  2. Linhas do grid por cima
-  3. Tokens nas posicoes (imagem do personagem recortada em circulo)
-- Props: mapa (dimensoes, imageUrl), tokens (posicoes + imageUrl do character), callbacks
+  1. Fundo liso (cor solida hardcoded, sem imagem)
+  2. Linhas do grid desenhadas por cima via `ctx.moveTo/lineTo`
+  3. Tokens nas posicoes (avatar do personagem recortado em circulo; fallback pra placeholder quando `character.imageUrl` e nulo)
+- Props: mapa (dimensoes), tokens (posicoes + imageUrl do character), callbacks
 
 #### 5.2 — Interacoes basicas
 
@@ -221,10 +244,12 @@ Eventos:
 
 ### Etapa 7 — UI de gerenciamento de mapas
 
-- Secao para criar/editar/deletar mapas (nome, upload de imagem, dimensoes do grid)
+- Secao para criar/editar/deletar mapas. Form:
+  - Input de texto: **nome**
+  - Segmented control (3 botoes lado a lado): **Pequeno / Medio / Grande**, com Medio selecionado por default. Cada botao mostra label + dimensoes em texto menor (ex: "Medio · 20×15"). Estilo igual aos pills de filtro que ja existem.
 - Interface para adicionar/remover tokens (selecionar personagem, colocar no mapa)
 - Botao para ativar/desativar mapa (apenas um ativo por vez)
-- Upload de avatar do personagem (na edicao do personagem, CharacterCard)
+- Upload de avatar do personagem: disponivel **tanto na criacao** (`Characters.jsx`, dentro do modal "Adicionar Personagem") **quanto na edicao** (`CharacterCard` em modo edit). Em ambos, um `<input type="file" accept="image/*">` chama `POST /api/upload/avatar` antes do submit final; o retorno (URL) entra no payload como `imageUrl`. Preview do avatar visivel enquanto o usuario edita.
 
 **Dependencias**: Etapas 2 e 3.
 
@@ -252,7 +277,7 @@ Eventos:
 |---|---|---|
 | `socket.io` | server | Servidor WebSocket |
 | `socket.io-client` | client | Cliente WebSocket |
-| `multer` | server | Upload de arquivos |
+| `multer` | server | Upload de avatares |
 
 Nenhuma lib extra de canvas e necessaria — a API nativa do `<canvas>` e suficiente para o escopo.
 
@@ -291,20 +316,17 @@ A etapa 7 (UI de gerenciamento) pode ser feita em paralelo com as etapas 4-6.
 
 As respostas a estas perguntas devem ser incorporadas ao plano antes de iniciar a implementacao.
 
-**11. Barra lateral compacta**
-Quando o grid estiver expandido e os cards minimizados na barra lateral, quais informacoes resumidas devem aparecer?
-- Apenas nome do personagem
-- Nome + HP
-- Nome + HP + Mana dos pilares
+**11. Barra lateral compacta** — **RESOLVIDO**
+Sidebar mostra **nome + HP (atual/maximo)**. Sem mana/pilares (cabe so no card expandido). Detalhes na secao Decisoes > Integracao com a Adventure.
 
-**12. Tamanho padrao do grid**
-Mencionei 20x15 como exemplo. Tem alguma preferencia de tamanho, ou quer que seja configuravel na criacao do mapa (dentro de um range, ex: minimo 10x10, maximo 40x30)?
+**12. Tamanho padrao do grid** — **RESOLVIDO**
+3 presets fixos: `small` (15×10), `medium` (20×15, padrao), `large` (30×20). Selecionado via segmented control no form; server traduz preset em dimensoes. Detalhes na secao Decisoes > Mapa e Etapa 3.
 
-**13. Avatar do personagem**
-O upload do avatar seria feito na criacao do personagem (Characters.jsx) ou apenas na edicao (CharacterCard)? Ou em ambos?
+**13. Avatar do personagem** — **RESOLVIDO**
+Upload disponivel em ambos: criacao (`Characters.jsx`) e edicao (`CharacterCard`). Detalhes na Etapa 7.
 
-**14. Ativacao do mapa**
-Quando o mestre ativa um mapa, os outros jogadores devem ser redirecionados automaticamente para o novo mapa (via Socket.IO), ou apenas veem uma notificacao para trocar?
+**14. Ativacao do mapa** — **RESOLVIDO**
+Redirecionamento **automatico** via `grid:activated` no Socket.IO. Clientes trocam de sala e recarregam estado sem acao do usuario. Detalhes em Decisoes > Troca de mapa e Etapa 4.
 
 **15. Tokens ao trocar de mapa**
 Quando o mestre ativa um mapa novo e posiciona os tokens manualmente, os tokens do mapa anterior devem ser preservados (caso voltem aquele mapa depois) ou removidos?
@@ -313,7 +335,7 @@ Quando o mestre ativa um mapa novo e posiciona os tokens manualmente, os tokens 
 
 ## Riscos e consideracoes
 
-- **Storage de imagens**: arquivos ficam em `server/uploads/`. Em producao no Railway, o filesystem e efemero (reseta no redeploy). Para persistir, sera necessario migrar para um servico externo (S3, Cloudflare R2, etc.) no futuro. Para desenvolvimento e testes iniciais, o filesystem local e suficiente.
+- **Storage de avatares**: arquivos ficam em `server/uploads/avatars/`. Em producao no Railway, o filesystem e efemero (reseta no redeploy) — avatares serao perdidos. Para persistir, migrar para S3/R2 no futuro. Para desenvolvimento e testes iniciais, filesystem local basta.
 - **Performance do canvas**: para grids ate ~40x30 com poucos tokens, a API nativa do canvas e mais que suficiente. Nao precisa de lib tipo Pixi.js ou Konva.
 - **Touch em mobile**: Canvas com touch exige cuidado para distinguir pan (arrastar mapa) de drag (mover token). Solucao: toque em token = drag token; toque em area vazia = pan.
 - **Reconexao**: Socket.IO tem reconexao automatica embutida. Ao reconectar, o client deve re-entrar na sala e buscar o estado atual do mapa via REST.

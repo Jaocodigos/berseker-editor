@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { PlusIcon, XMarkIcon } from "@heroicons/react/16/solid";
 import Modal from "../components/Modal";
+import MapManager from "../components/MapManager";
+import GridView from "../components/GridView";
 import { useAuth } from "../context/AuthContext";
 import { useAdventure } from "../context/AdventureContext";
 import logger, { API_URL } from "../logger";
@@ -13,6 +15,8 @@ export default function Adventure() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
     const [showAddModal, setShowAddModal] = useState(false);
+    const [showMapManager, setShowMapManager] = useState(false);
+    const [gridMode, setGridMode] = useState(false);
     const [selectedCharacterId, setSelectedCharacterId] = useState("");
     const [damageTargetId, setDamageTargetId] = useState(null);
     const [damageValue, setDamageValue] = useState("");
@@ -529,17 +533,39 @@ export default function Adventure() {
                         Adicione personagens para iniciar e acompanhar seu progresso.
                     </p>
                 </div>
-                <button
-                    className="rpg-button add-button adventure-add"
-                    onClick={handleOpenAddModal}
-                    disabled={!canAdd}
-                    title={canAdd ? "Adicionar personagem" : "Nenhum personagem disponivel"}
-                >
-                    <PlusIcon className="size-6 rpg-icon bg add-icon" />
-                    <span>Adicionar</span>
-                </button>
+                <div className="adventure-header-actions">
+                    <button
+                        className={`rpg-button neutral-button adventure-grid-toggle${gridMode ? " active" : ""}`}
+                        onClick={() => setGridMode((v) => !v)}
+                        title={gridMode ? "Ver cards" : "Ver mapa"}
+                    >
+                        <span>{gridMode ? "Cards" : "Mapa"}</span>
+                    </button>
+                    {isMaster && (
+                        <button
+                            className="rpg-button neutral-button adventure-maps-button"
+                            onClick={() => setShowMapManager(true)}
+                            title="Gerenciar mapas"
+                        >
+                            <span>Mapas</span>
+                        </button>
+                    )}
+                    <button
+                        className="rpg-button add-button adventure-add"
+                        onClick={handleOpenAddModal}
+                        disabled={!canAdd}
+                        title={canAdd ? "Adicionar personagem" : "Nenhum personagem disponivel"}
+                    >
+                        <PlusIcon className="size-6 rpg-icon bg add-icon" />
+                        <span>Adicionar</span>
+                    </button>
+                </div>
             </header>
 
+            {gridMode ? (
+                <GridView />
+            ) : (
+            <>
             <div className="adventure-grid">
                 {loading ? (
                     <div className="adventure-empty">
@@ -937,6 +963,14 @@ export default function Adventure() {
                     </div>
                 </section>
             )}
+            </>
+            )}
+
+            <MapManager
+                open={showMapManager}
+                onClose={() => setShowMapManager(false)}
+                characters={availableCharacters}
+            />
 
             <Modal
                 title="Adicionar personagem"

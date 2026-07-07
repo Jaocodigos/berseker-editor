@@ -48,9 +48,24 @@ npm install
 DATABASE_URL="mysql://root:secret@localhost:3306/rpg_db"
 API_URL="http://localhost:3001 Ou URL do seu backend"
 ADMIN_TOKEN="seu-token-secreto-aqui"
+# Opcional: diretorio dos arquivos enviados (avatares). Em producao aponte para
+# um volume persistente. Se omitido, usa server/uploads (bom para dev local).
+# UPLOADS_DIR="/data"
 ```
 
 > **Importante:** troque `ADMIN_TOKEN` por um valor secreto forte antes de usar em produção.
+
+### Persistência de uploads (produção)
+
+Os arquivos enviados (avatares) são gravados em disco; no banco fica apenas a URL.
+Em plataformas com filesystem efêmero (ex.: Railway), esses arquivos somem no
+redeploy. Para persistir, monte um **volume** e aponte o app para ele:
+
+1. Crie um Volume no serviço com **mount path** `/data`.
+2. Defina a variável de ambiente `UPLOADS_DIR=/data`.
+
+O app cria `/data/avatars` automaticamente no boot e serve tudo em `/uploads`
+(as URLs já salvas continuam válidas).
 
 4. Aplique as migrations e gere o client do Prisma:
 

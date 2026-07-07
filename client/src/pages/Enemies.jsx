@@ -1,8 +1,10 @@
 import { useState, useEffect } from "react";
 import CharacterCard from "../components/CharacterCard";
+import CharacterFilter from "../components/CharacterFilter";
 import { PlusIcon } from "@heroicons/react/16/solid";
 import { useAuth } from "../context/AuthContext";
 import logger, { API_URL } from "../logger";
+import { filterCharacters } from "../utils/filterCharacters";
 
 export default function Enemies() {
     const { authHeader } = useAuth();
@@ -17,6 +19,7 @@ export default function Enemies() {
     const [characterTitleId, setCharacterTitleId] = useState("");
     const [enemies, setEnemies] = useState([]);
     const [titles, setTitles] = useState([]);
+    const [filters, setFilters] = useState({ name: "", titleIds: [] });
 
     useEffect(() => {
         fetchEnemies();
@@ -150,28 +153,41 @@ export default function Enemies() {
 
             <button
                 className="rpg-button add-button"
+                aria-label="Adicionar inimigo"
                 onClick={() => setShowModal(true)}
             >
                 <PlusIcon className="size-6 rpg-icon bg add-icon" />
             </button>
 
+            <CharacterFilter
+                titles={titles}
+                filters={filters}
+                onFiltersChange={setFilters}
+            />
+
             <div className="characters-list">
-                {enemies.map((enemy) => (
-                    <div key={enemy.id} className="enemy-card-wrapper">
-                        <CharacterCard
-                            character={enemy}
-                            onRefresh={fetchEnemies}
-                        />
-                        <button
-                            className={`rpg-button ${enemy.inAdventure ? "delete-button" : "save-button"} enemy-adventure-toggle`}
-                            onClick={() => handleToggleAdventure(enemy)}
-                        >
-                            {enemy.inAdventure
-                                ? "Remover da Aventura"
-                                : "Enviar para Aventura"}
-                        </button>
-                    </div>
-                ))}
+                {(() => {
+                    const visible = filterCharacters(enemies, filters);
+                    if (visible.length === 0) {
+                        return <p className="filter-empty">Nenhum inimigo encontrado.</p>;
+                    }
+                    return visible.map((enemy) => (
+                        <div key={enemy.id} className="enemy-card-wrapper">
+                            <CharacterCard
+                                character={enemy}
+                                onRefresh={fetchEnemies}
+                            />
+                            <button
+                                className={`rpg-button ${enemy.inAdventure ? "delete-button" : "save-button"} enemy-adventure-toggle`}
+                                onClick={() => handleToggleAdventure(enemy)}
+                            >
+                                {enemy.inAdventure
+                                    ? "Remover da Aventura"
+                                    : "Enviar para Aventura"}
+                            </button>
+                        </div>
+                    ));
+                })()}
             </div>
 
             {showModal && (

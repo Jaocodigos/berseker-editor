@@ -6,6 +6,7 @@ import cors from 'cors'
 import cookieParser from 'cookie-parser'
 import { PrismaClient } from '@prisma/client'
 import { randomUUID } from 'crypto'
+import http from 'http'
 import path from 'path'
 import { fileURLToPath } from 'url'
 
@@ -17,6 +18,11 @@ import authRouter from './routes/auth.js'
 import usersRouter from './routes/users.js'
 import adventuresRouter from './routes/adventures.js'
 import titlesRouter from './routes/titles.js'
+import uploadRouter from './routes/upload.js'
+import { UPLOADS_DIR } from './config/paths.js'
+import mapsRouter from './routes/maps.js'
+import tokensRouter from './routes/tokens.js'
+import { initSocket } from './socket/index.js'
 import { rollDice } from './utils/dice.js'
 import { saveRoll, getRolls } from './store/diceRolls.js'
 
@@ -71,6 +77,11 @@ app.use('/api/auth', authRouter)
 app.use('/api/users', usersRouter)
 app.use('/api/adventures', adventuresRouter)
 
+// ================= Uploads (avatares) — arquivos publicos =================
+// UPLOADS_DIR aponta para o volume persistente em producao (Railway).
+
+app.use('/uploads', express.static(UPLOADS_DIR))
+
 // ================= Serve frontend (produção) =================
 
 app.use(express.static(path.join(__dirname, '../../client/dist')))
@@ -83,6 +94,10 @@ app.get('*', (req, res, next) => {
 // ================= Rotas Protegidas (Auth) =================
 
 app.use(authMiddleware)
+
+// ================= Upload de avatares (requer auth, NAO requer aventura) =================
+
+app.use('/api/upload', uploadRouter)
 
 // ================= Selecao de Aventura (requer auth, NAO requer aventura) =================
 
@@ -124,6 +139,11 @@ app.use(adventureMiddleware)
 
 app.use('/api/titles', titlesRouter)
 
+// ================= Grid (mapas e tokens) =================
+
+app.use('/api/maps', mapsRouter)
+app.use('/api/tokens', tokensRouter)
+
 // ================= Characters =================
 
 app.get("/api/characters", async (req, res, next) => {
@@ -163,7 +183,7 @@ app.get('/api/characters/:id', async (req, res, next) => {
 
 app.post('/api/characters', async (req, res, next) => {
     try {
-        const { name, type = 'player_character', maxHp, actualHp, hp, pillars = [], xp = 0, level = 1, pillarXp = 0, pillarLevel = 1, titleId = null } = req.body;
+        const { name, type = 'player_character', maxHp, actualHp, hp, pillars = [], xp = 0, level = 1, pillarXp = 0, pillarLevel = 1, titleId = null, imageUrl = null } = req.body;
 
         if (!name) return res.status(400).json({ error: 'name e obrigatorio' });
 
@@ -266,6 +286,7 @@ app.post('/api/characters', async (req, res, next) => {
                 type,
                 adventureId: req.adventure.id,
                 titleId: resolvedTitleId,
+                imageUrl: imageUrl || null,
                 maxHp: maxHpValue,
                 actualHp: actualHpValue,
                 xp: xpValue,
@@ -295,9 +316,10 @@ app.patch('/api/characters/:id', async (req, res, next) => {
         if (character.type === 'enemy' && req.adventureRole !== 'master') {
             return res.status(403).json({ error: 'Apenas o mestre pode editar inimigos' })
         }
-        const { name, maxHp, actualHp, hp, xp, level, pillarXp, pillarLevel, titleId } = req.body
+        const { name, maxHp, actualHp, hp, xp, level, pillarXp, pillarLevel, titleId, imageUrl } = req.body
         const data = {}
         if (name) data.nome = name
+        if (imageUrl !== undefined) data.imageUrl = imageUrl || null
         if (titleId !== undefined) {
             if (titleId === null || titleId === '') {
                 data.titleId = null
@@ -756,7 +778,9 @@ app.use((err, req, res, next) => {
 export { app }
 
 if (process.env.NODE_ENV !== 'test') {
-    app.listen(3001, () => {
+    const httpServer = http.createServer(app)
+    initSocket(httpServer)
+    httpServer.listen(3001, () => {
         logger.info('servidor iniciado', { port: 3001, env: process.env.NODE_ENV || 'development' })
     })
 }

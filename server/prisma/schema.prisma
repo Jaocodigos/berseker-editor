@@ -18,7 +18,9 @@ model Character {
   level       Int        @default(1)
   pillarXp    Int        @default(0) @map("pillar_xp")
   pillarLevel Int        @default(1) @map("pillar_level")
+  imageUrl    String?    @map("image_url") @db.Text
   pillars     Pillar[]
+  tokens      Token[]
   adventure   Adventure @relation(fields: [adventureId], references: [id], onDelete: Cascade)
   adventureId Int       @map("adventure_id")
   title       Title?    @relation(fields: [titleId], references: [id], onDelete: SetNull)
@@ -70,8 +72,36 @@ model Adventure {
   users      AdventureUser[]
   characters Character[]
   titles     Title[]
+  maps       GameMap[]
 
   @@map("adventures")
+}
+
+model GameMap {
+  id            Int       @id @default(autoincrement())
+  nome          String
+  gridWidth     Int       @default(20) @map("grid_width")
+  gridHeight    Int       @default(15) @map("grid_height")
+  cellSize      Int       @default(40) @map("cell_size")
+  active        Boolean   @default(false)
+  backgroundUrl String?   @map("background_url") @db.Text
+  adventure     Adventure @relation(fields: [adventureId], references: [id], onDelete: Cascade)
+  adventureId   Int       @map("adventure_id")
+  tokens        Token[]
+
+  @@map("game_maps")
+}
+
+model Token {
+  id          Int       @id @default(autoincrement())
+  posX        Int       @default(0) @map("pos_x")
+  posY        Int       @default(0) @map("pos_y")
+  character   Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  characterId Int       @map("character_id")
+  gameMap     GameMap   @relation(fields: [gameMapId], references: [id], onDelete: Cascade)
+  gameMapId   Int       @map("game_map_id")
+
+  @@map("tokens")
 }
 
 model Title {

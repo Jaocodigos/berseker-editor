@@ -43,7 +43,7 @@ describe('Characters Page', () => {
             json: () => Promise.resolve([]),
         })
         render(<MemoryRouter><Characters /></MemoryRouter>)
-        await userEvent.click(screen.getByRole('button'))
+        await userEvent.click(screen.getByRole('button', { name: /adicionar personagem/i }))
         expect(screen.getByText('Adicionar Personagem')).toBeInTheDocument()
     })
 
@@ -59,10 +59,10 @@ describe('Characters Page', () => {
             return Promise.resolve({ ok: true, json: () => Promise.resolve([]) })
         })
         render(<MemoryRouter><Characters /></MemoryRouter>)
-        const plusBtn = await screen.findByRole('button')
+        const plusBtn = await screen.findByRole('button', { name: /adicionar personagem/i })
         await userEvent.click(plusBtn)
         await waitFor(() => {
-            expect(screen.getByText('Sem título')).toBeInTheDocument()
+            expect(screen.getByRole('option', { name: 'Sem título' })).toBeInTheDocument()
             expect(screen.getByRole('option', { name: 'Herói' })).toBeInTheDocument()
             expect(screen.getByRole('option', { name: 'Vilão' })).toBeInTheDocument()
         })
@@ -80,7 +80,7 @@ describe('Characters Page', () => {
             return Promise.resolve({ ok: true, json: () => Promise.resolve([]) })
         })
         render(<MemoryRouter><Characters /></MemoryRouter>)
-        await userEvent.click(await screen.findByRole('button'))
+        await userEvent.click(await screen.findByRole('button', { name: /adicionar personagem/i }))
 
         await userEvent.type(screen.getByPlaceholderText('Nome do personagem'), 'Hero')
         const select = await screen.findByRole('combobox')
@@ -96,6 +96,46 @@ describe('Characters Page', () => {
         })
     })
 
+    it('filtra personagens por nome ao digitar no filtro', async () => {
+        global.fetch = vi.fn().mockImplementation((url) => {
+            if (typeof url === 'string' && url.endsWith('/api/titles')) {
+                return Promise.resolve({ ok: true, json: () => Promise.resolve([]) })
+            }
+            return Promise.resolve({ ok: true, json: () => Promise.resolve(mockCharacters) })
+        })
+        render(<MemoryRouter><Characters /></MemoryRouter>)
+        await waitFor(() => {
+            expect(screen.getByText('Aragorn')).toBeInTheDocument()
+            expect(screen.getByText('Legolas')).toBeInTheDocument()
+        })
+
+        await userEvent.click(screen.getByRole('button', { name: /filtrar/i }))
+        await userEvent.type(screen.getByPlaceholderText('Buscar por nome'), 'leg')
+
+        await waitFor(() => {
+            expect(screen.queryByText('Aragorn')).not.toBeInTheDocument()
+            expect(screen.getByText('Legolas')).toBeInTheDocument()
+        })
+    })
+
+    it('mostra mensagem de vazio quando filtro nao casa nenhum personagem', async () => {
+        global.fetch = vi.fn().mockImplementation((url) => {
+            if (typeof url === 'string' && url.endsWith('/api/titles')) {
+                return Promise.resolve({ ok: true, json: () => Promise.resolve([]) })
+            }
+            return Promise.resolve({ ok: true, json: () => Promise.resolve(mockCharacters) })
+        })
+        render(<MemoryRouter><Characters /></MemoryRouter>)
+        await waitFor(() => expect(screen.getByText('Aragorn')).toBeInTheDocument())
+
+        await userEvent.click(screen.getByRole('button', { name: /filtrar/i }))
+        await userEvent.type(screen.getByPlaceholderText('Buscar por nome'), 'xyz')
+
+        await waitFor(() => {
+            expect(screen.getByText('Nenhum personagem encontrado.')).toBeInTheDocument()
+        })
+    })
+
     it('chama POST ao submeter o formulário de criação', async () => {
         const created = { id: 3, nome: 'Gandalf', maxHp: 120, actualHp: 120, pillars: [] }
         global.fetch = vi.fn()
@@ -104,7 +144,7 @@ describe('Characters Page', () => {
             .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve([created]) }) // GET após criar
 
         render(<MemoryRouter><Characters /></MemoryRouter>)
-        await userEvent.click(screen.getByRole('button'))
+        await userEvent.click(screen.getByRole('button', { name: /adicionar personagem/i }))
 
         await userEvent.type(screen.getByPlaceholderText('Nome do personagem'), 'Gandalf')
         await userEvent.type(screen.getByPlaceholderText('HP máximo'), '120')
