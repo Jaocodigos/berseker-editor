@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import CharacterCard from "../components/CharacterCard";
 import CharacterFilter from "../components/CharacterFilter";
+import AvatarUpload from "../components/AvatarUpload";
 import { TrashIcon } from '@heroicons/react/16/solid'
 import {PlusIcon} from "@heroicons/react/16/solid/index.js";
 import { useAuth } from "../context/AuthContext";
@@ -18,6 +19,7 @@ export default function Characters() {
     const [characterPillarXp, setCharacterPillarXp] = useState("");
     const [characterPillarLevel, setCharacterPillarLevel] = useState("");
     const [characterTitleId, setCharacterTitleId] = useState("");
+    const [characterImageUrl, setCharacterImageUrl] = useState(null);
     const [characters, setCharacters] = useState([]);
     const [titles, setTitles] = useState([]);
     const [filters, setFilters] = useState({ name: "", titleIds: [] });
@@ -72,6 +74,7 @@ export default function Characters() {
         const personagem = {
             name: characterName,
             titleId: characterTitleId === "" ? null : Number(characterTitleId),
+            imageUrl: characterImageUrl,
             maxHp: characterMaxHp === "" ? undefined : Number(characterMaxHp),
             actualHp: characterMaxHp === "" ? undefined : Number(characterMaxHp),
             xp: characterXp === "" ? 0 : Number(characterXp),
@@ -113,6 +116,7 @@ export default function Characters() {
             setCharacterPillarXp("");
             setCharacterPillarLevel("");
             setCharacterTitleId("");
+            setCharacterImageUrl(null);
             setShowModal(false);
 
             await fetchCharacters();
@@ -167,6 +171,10 @@ export default function Characters() {
                                 <label>Nome</label>
                                 <input type="text" placeholder="Nome do personagem" value={characterName}
                                     onChange={(e) => setCharacterName(e.target.value)}/>
+                            </div>
+                            <div className="form-field">
+                                <label>Avatar</label>
+                                <AvatarUpload value={characterImageUrl} onChange={setCharacterImageUrl} />
                             </div>
                             <div className="form-field">
                                 <label>Título</label>

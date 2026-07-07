@@ -1663,3 +1663,348 @@ button:focus-visible {
     grid-template-columns: repeat(2, 1fr);
   }
 }
+
+/* ================= Grid: avatar upload + gerenciamento de mapas ================= */
+
+.adventure-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+/* Normaliza os botões do MapManager: o .rpg-button base é width:35% e algumas
+   variantes (.delete-button.sm) forçam width/height/padding com !important —
+   aqui escopamos para o gerenciador e deixamos os botões do tamanho do texto. */
+.map-item-actions .rpg-button,
+.map-edit-actions .rpg-button,
+.map-token-add .rpg-button,
+.map-token-list .rpg-button {
+  width: auto !important;
+  height: auto !important;
+  min-width: 0;
+  padding: 0.4rem 0.8rem !important;
+  font-size: 0.82rem;
+  font-weight: 600;
+  flex: 0 0 auto;
+  margin: 0;
+}
+
+/* Avatar do personagem no card */
+.character-avatar {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid rgba(56, 189, 248, 0.45);
+  margin: 0 auto 0.4rem;
+  display: block;
+}
+
+/* Campo de upload de avatar (form) */
+.avatar-upload {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+}
+
+.avatar-preview {
+  width: 64px;
+  height: 64px;
+  flex: 0 0 64px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.avatar-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.avatar-placeholder {
+  font-size: 1.4rem;
+  color: rgba(255, 255, 255, 0.35);
+}
+
+/* Variante retangular para preview de fundo de mapa */
+.avatar-preview--map {
+  width: 128px;
+  height: 76px;
+  flex-basis: 128px;
+  border-radius: 8px;
+}
+
+.avatar-upload-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  align-items: flex-start;
+}
+
+.avatar-upload-controls input[type="file"] {
+  font-size: 0.8rem;
+  color: #cbd5e1;
+}
+
+.avatar-status {
+  font-size: 0.8rem;
+}
+
+.avatar-status.error {
+  color: var(--accent-primary-strong);
+}
+
+/* Segmented control de tamanho de mapa (estilo pill) */
+.map-size-segmented {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.map-size-option {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+  padding: 0.5rem 0.4rem;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(0, 0, 0, 0.35);
+  color: #e2e8f0;
+  cursor: pointer;
+  transition: border-color 0.2s, background-color 0.2s, box-shadow 0.2s;
+}
+
+.map-size-option:hover:not(:disabled) {
+  border-color: rgba(56, 189, 248, 0.6);
+}
+
+.map-size-option.active {
+  border-color: rgba(56, 189, 248, 0.9);
+  background: rgba(34, 211, 238, 0.16);
+  box-shadow: 0 0 0 2px rgba(34, 211, 238, 0.2);
+}
+
+.map-size-label {
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+
+.map-size-dims {
+  font-size: 0.72rem;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+/* Formulario de criacao + lista de mapas */
+.map-create-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding-bottom: 1rem;
+  margin-bottom: 1rem;
+}
+
+.map-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.map-item {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  padding: 0.75rem 0.9rem;
+  background: rgba(0, 0, 0, 0.25);
+}
+
+.map-item.active {
+  border-color: rgba(56, 189, 248, 0.7);
+  box-shadow: 0 0 0 1px rgba(34, 211, 238, 0.25);
+}
+
+.map-item-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.map-item-info {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.map-item-dims {
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.map-active-badge {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #0f0f12;
+  background: var(--accent-secondary);
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+}
+
+.map-item-actions {
+  display: flex;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+
+.map-edit,
+.map-tokens {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px dashed rgba(255, 255, 255, 0.12);
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.map-edit input,
+.map-token-add select {
+  padding: 0.6em 0.8em;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(0, 0, 0, 0.35);
+  color: #f2f2f2;
+  font-family: inherit;
+}
+
+.map-edit-actions,
+.map-token-add {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.map-token-add select {
+  flex: 1;
+}
+
+.map-token-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.map-token-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.35rem 0.6rem;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+/* ================= Grid: modo mapa (canvas + sidebar) ================= */
+
+.adventure-grid-toggle.active {
+  border-color: rgba(56, 189, 248, 0.9);
+  background: rgba(34, 211, 238, 0.16);
+}
+
+.grid-view {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+  margin-top: 1rem;
+}
+
+.grid-view-main {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.grid-map-wrapper {
+  width: 100%;
+  overflow: auto;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: #14141a;
+}
+
+.grid-map-canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-width: 100%;
+}
+
+.grid-sidebar {
+  flex: 0 0 220px;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  padding: 0.9rem;
+}
+
+.grid-sidebar-title {
+  margin: 0 0 0.75rem;
+  font-size: 1.05rem;
+}
+
+.grid-sidebar-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.grid-sidebar-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.45rem 0.6rem;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.grid-sidebar-name {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.grid-sidebar-hp {
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.6);
+  white-space: nowrap;
+}
+
+.grid-empty {
+  text-align: center;
+  padding: 3rem 1rem;
+}
+
+/* Mobile: sidebar abaixo do mapa */
+@media (max-width: 768px) {
+  .grid-view {
+    flex-direction: column;
+  }
+  .grid-sidebar {
+    flex: 1 1 auto;
+    width: 100%;
+    box-sizing: border-box;
+  }
+}

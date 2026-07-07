@@ -4,6 +4,7 @@ import { FireIcon, TrashIcon, PencilSquareIcon } from '@heroicons/react/16/solid
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { API_URL } from "../logger";
+import AvatarUpload, { avatarSrc } from "./AvatarUpload";
 
 
 export default function CharacterCard({ character, onRefresh }) {
@@ -30,6 +31,7 @@ export default function CharacterCard({ character, onRefresh }) {
     function openEditModal() {
         setEditData({
             nome: character.nome,
+            imageUrl: character.imageUrl ?? null,
             titleId: character.titleId ?? character.title?.id ?? '',
             maxHp: character.maxHp ?? 0,
             actualHp: character.actualHp ?? 0,
@@ -86,6 +88,7 @@ export default function CharacterCard({ character, onRefresh }) {
                 headers: { 'Content-Type': 'application/json', ...authHeader },
                 body: JSON.stringify({
                     name: editData.nome,
+                    imageUrl: editData.imageUrl,
                     titleId: editData.titleId === '' ? null : Number(editData.titleId),
                     maxHp: Number(editData.maxHp),
                     actualHp: Number(editData.actualHp),
@@ -157,6 +160,9 @@ export default function CharacterCard({ character, onRefresh }) {
 
     return (
         <div className={`character-card${showDeleteModal || showEditModal ? " modal-open" : ""}`}>
+            {character.imageUrl && (
+                <img className="character-avatar" src={avatarSrc(character.imageUrl)} alt={character.nome} />
+            )}
             <h3>{character.nome}</h3>
 
             {character.title && (
@@ -236,6 +242,13 @@ export default function CharacterCard({ character, onRefresh }) {
                                 placeholder="Nome do personagem"
                                 value={editData.nome}
                                 onChange={(e) => updateEditField('nome', e.target.value)}
+                            />
+                        </div>
+                        <div className="form-field">
+                            <label>Avatar</label>
+                            <AvatarUpload
+                                value={editData.imageUrl}
+                                onChange={(url) => updateEditField('imageUrl', url)}
                             />
                         </div>
                         <div className="form-field">
