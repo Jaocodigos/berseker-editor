@@ -1,0 +1,4 @@
+# Arquivos enviados (avatares) sao efemeros — nao versionar o conteudo,
+# mas manter o diretorio no repo.
+*
+!.gitignore
