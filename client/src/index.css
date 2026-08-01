@@ -2001,7 +2001,7 @@ button:focus-visible {
 .grid-view-main:fullscreen .grid-map-wrapper,
 .grid-view-main--fullscreen-fallback .grid-map-wrapper {
   width: 100%;
-  max-height: 100%;
+  height: 100%;
 }
 
 .grid-view-main:fullscreen .grid-fullscreen-button,
@@ -2012,20 +2012,75 @@ button:focus-visible {
 
 .grid-map-wrapper {
   width: 100%;
-  overflow: auto;
-  -webkit-overflow-scrolling: touch;
+  position: relative;
+  overflow: hidden;
   border-radius: 12px;
   border: 1px solid rgba(255, 255, 255, 0.12);
   background: #14141a;
 }
 
-/* width:100% encaixa na largura do container; min-width (inline, por mapa)
-   garante celulas tocaveis e faz o wrapper rolar na horizontal em telas
-   estreitas em vez de encolher os tokens. */
 .grid-map-canvas {
   display: block;
   width: 100%;
   height: auto;
+  transform-origin: 0 0;
+  cursor: grab;
+  user-select: none;
+  will-change: transform;
+}
+
+.grid-map-canvas.is-navigating {
+  cursor: grabbing;
+}
+
+.grid-map-controls {
+  position: absolute;
+  right: 0.75rem;
+  bottom: 0.75rem;
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.3rem;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 12px;
+  background: rgba(15, 15, 18, 0.82);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(6px);
+}
+
+.grid-map-control-button {
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #f8fafc;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid transparent;
+  border-radius: 9px;
+}
+
+.grid-map-control-button:hover,
+.grid-map-control-button:focus-visible {
+  color: #ffffff;
+  border-color: rgba(56, 189, 248, 0.9);
+  background: rgba(34, 211, 238, 0.14);
+}
+
+.grid-map-control-button svg {
+  width: 22px;
+  height: 22px;
+}
+
+.grid-map-zoom-value {
+  min-width: 3.2rem;
+  color: #e2e8f0;
+  font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
 }
 
 .grid-sidebar {
