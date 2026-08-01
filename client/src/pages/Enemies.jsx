@@ -2,12 +2,10 @@ import { useState, useEffect } from "react";
 import CharacterCard from "../components/CharacterCard";
 import CharacterFilter from "../components/CharacterFilter";
 import { PlusIcon } from "@heroicons/react/16/solid";
-import { useAuth } from "../context/AuthContext";
 import logger, { API_URL } from "../logger";
 import { filterCharacters } from "../utils/filterCharacters";
 
 export default function Enemies() {
-    const { authHeader } = useAuth();
     const [showModal, setShowModal] = useState(false);
     const [pillars, setPillars] = useState([]);
     const [characterName, setCharacterName] = useState("");
@@ -39,9 +37,7 @@ export default function Enemies() {
 
     const fetchEnemies = async () => {
         try {
-            const res = await fetch(`${API_URL}/api/characters?type=enemy`, {
-                headers: { ...authHeader },
-            });
+            const res = await fetch(`${API_URL}/api/characters?type=enemy`);
             const data = await res.json();
             setEnemies(data);
         } catch (err) {
@@ -70,10 +66,7 @@ export default function Enemies() {
         try {
             const res = await fetch(
                 `${API_URL}/api/characters/${enemy.id}/${endpoint}`,
-                {
-                    method: "POST",
-                    headers: { ...authHeader },
-                }
+                { method: "POST" }
             );
             if (!res.ok) throw new Error("Falha ao alterar status na aventura");
             await fetchEnemies();
@@ -115,10 +108,7 @@ export default function Enemies() {
         try {
             const response = await fetch(`${API_URL}/api/characters`, {
                 method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    ...authHeader,
-                },
+                headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(inimigo),
             });
 

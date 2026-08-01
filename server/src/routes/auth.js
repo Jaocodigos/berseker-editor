@@ -1,12 +1,11 @@
 import express from 'express'
-import { PrismaClient } from '@prisma/client'
 import bcrypt from 'bcryptjs'
 import { randomUUID } from 'crypto'
+import prisma from '../db.js'
 import logger from '../logger.js'
 import authMiddleware from '../middleware/auth.js'
 
 const router = express.Router()
-const prisma = new PrismaClient()
 
 const SESSION_DURATION_MS = 3 * 60 * 60 * 1000 // 3 horas
 

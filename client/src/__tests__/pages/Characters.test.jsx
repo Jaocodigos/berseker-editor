@@ -4,10 +4,6 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import Characters from '../../pages/Characters'
 
-vi.mock('../../context/AuthContext', () => ({
-    useAuth: () => ({ authHeader: { Authorization: 'Basic dXNlcjpwYXNz' } }),
-}))
-
 vi.mock('../../logger', () => ({
     default: { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() },
     API_URL: '',

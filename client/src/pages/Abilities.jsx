@@ -2,12 +2,10 @@ import { useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
 import Modal from "../components/Modal";
 import {TrashIcon, EyeIcon, PlusIcon, PencilSquareIcon} from "@heroicons/react/16/solid/index.js";
-import { useAuth } from "../context/AuthContext";
 import logger, { API_URL } from "../logger";
 
 export default function Abilities({ onRefresh }) {
     const { characterId } = useParams();
-    const { authHeader } = useAuth()
     const [character, setCharacter] = useState(null);
 
     const [selectedAbility, setSelectedAbility] = useState(null);
@@ -34,9 +32,7 @@ export default function Abilities({ onRefresh }) {
 
     async function fetchCharacter() {
         try {
-            const res = await fetch(`${API_URL}/api/characters/${characterId}`, {
-                headers: { ...authHeader }
-            });
+            const res = await fetch(`${API_URL}/api/characters/${characterId}`);
             const data = await res.json();
             setCharacter(data);
         } catch (err) {
@@ -50,10 +46,7 @@ export default function Abilities({ onRefresh }) {
 
             const res = await fetch(`${API_URL}/api/abilities`, {
                 method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    ...authHeader
-                },
+                headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ ...abilityData })
             });
 
@@ -74,10 +67,7 @@ export default function Abilities({ onRefresh }) {
 
             const res = await fetch(`${API_URL}/api/abilities/${abilityId}`, {
                 method: "PUT",
-                headers: {
-                    "Content-Type": "application/json",
-                    ...authHeader
-                },
+                headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(abilityData)
             });
 
@@ -98,7 +88,6 @@ export default function Abilities({ onRefresh }) {
 
             const res = await fetch(`${API_URL}/api/abilities/${abilityId}`, {
                 method: "DELETE",
-                headers: { ...authHeader }
             });
 
             if (res.status !== 204) throw new Error("Falha ao deletar habilidade");

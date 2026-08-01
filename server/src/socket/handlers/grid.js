@@ -1,9 +1,7 @@
-import { PrismaClient } from '@prisma/client'
+import prisma from '../../db.js'
 import logger from '../../logger.js'
 import { mapRoom } from '../io.js'
 import { clampPosition } from '../../utils/grid.js'
-
-const prisma = new PrismaClient()
 
 // Fabrica de handlers (recebe prisma para facilitar testes).
 export function createGridHandlers(db = prisma) {

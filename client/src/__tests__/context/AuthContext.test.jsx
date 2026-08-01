@@ -9,12 +9,11 @@ vi.mock('../../logger', () => ({
 }))
 
 function AuthConsumer() {
-    const { credentials, loading, login, logout, authHeader } = useAuth()
+    const { credentials, loading, login, logout } = useAuth()
     if (loading) return <span data-testid="loading">loading</span>
     return (
         <div>
             <span data-testid="credentials">{credentials ? credentials.username : 'none'}</span>
-            <span data-testid="auth-header">{JSON.stringify(authHeader)}</span>
             <button onClick={() => login('user', 'pass')}>Login</button>
             <button onClick={logout}>Logout</button>
         </div>
@@ -101,10 +100,13 @@ describe('AuthContext', () => {
         await waitFor(() => expect(screen.getByTestId('credentials').textContent).toBe('none'))
     })
 
-    it('authHeader é sempre objeto vazio (cookies são automáticos)', async () => {
-        global.fetch = vi.fn().mockResolvedValue({ ok: false, status: 401 })
+    it('logout limpa credentials mesmo quando a request falha', async () => {
+        global.fetch = vi.fn()
+            .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ id: 1, username: 'user', adventures: [] }) })
+            .mockRejectedValueOnce(new Error('network down'))
         render(<AuthProvider><AuthConsumer /></AuthProvider>)
-        await waitFor(() => expect(screen.queryByTestId('loading')).not.toBeInTheDocument())
-        expect(JSON.parse(screen.getByTestId('auth-header').textContent)).toEqual({})
+        await waitFor(() => expect(screen.getByTestId('credentials').textContent).toBe('user'))
+        await userEvent.click(screen.getByText('Logout'))
+        await waitFor(() => expect(screen.getByTestId('credentials').textContent).toBe('none'))
     })
 })

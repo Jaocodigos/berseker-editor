@@ -104,23 +104,46 @@ describe('Maps Routes (/api/maps)', () => {
             expect(res.status).toBe(400)
         })
 
-        it('master cria mapa medium com dimensoes do preset', async () => {
-            mockPrisma.gameMap.create.mockResolvedValue({ id: 3, nome: 'Arena', gridWidth: 20, gridHeight: 15, adventureId: ADV_ID })
+        it('retorna 400 com shape invalido', async () => {
+            const res = await withMaster(request(app).post('/api/maps').send({ nome: 'X', shape: 'hex' }))
+            expect(res.status).toBe(400)
+        })
+
+        it('master cria mapa medium (landscape) com dimensoes do preset (21x14)', async () => {
+            mockPrisma.gameMap.create.mockResolvedValue({ id: 3, nome: 'Arena', gridWidth: 21, gridHeight: 14, adventureId: ADV_ID })
             const res = await withMaster(request(app).post('/api/maps').send({ nome: 'Arena' }))
             expect(res.status).toBe(201)
             expect(mockPrisma.gameMap.create).toHaveBeenCalledWith(
                 expect.objectContaining({
-                    data: expect.objectContaining({ nome: 'Arena', gridWidth: 20, gridHeight: 15, adventureId: ADV_ID }),
+                    data: expect.objectContaining({ nome: 'Arena', gridWidth: 21, gridHeight: 14, adventureId: ADV_ID }),
                 })
             )
         })
 
-        it('master cria mapa large com 30x20', async () => {
+        it('master cria mapa large (landscape) com 30x20', async () => {
             mockPrisma.gameMap.create.mockResolvedValue({ id: 4, nome: 'Campo', gridWidth: 30, gridHeight: 20, adventureId: ADV_ID })
             const res = await withMaster(request(app).post('/api/maps').send({ nome: 'Campo', size: 'large' }))
             expect(res.status).toBe(201)
             expect(mockPrisma.gameMap.create).toHaveBeenCalledWith(
                 expect.objectContaining({ data: expect.objectContaining({ gridWidth: 30, gridHeight: 20 }) })
+            )
+        })
+
+        it('master cria mapa quadrado medium com 16x16', async () => {
+            mockPrisma.gameMap.create.mockResolvedValue({ id: 6, nome: 'Salao', gridWidth: 16, gridHeight: 16, adventureId: ADV_ID })
+            const res = await withMaster(request(app).post('/api/maps').send({ nome: 'Salao', shape: 'square' }))
+            expect(res.status).toBe(201)
+            expect(mockPrisma.gameMap.create).toHaveBeenCalledWith(
+                expect.objectContaining({ data: expect.objectContaining({ gridWidth: 16, gridHeight: 16 }) })
+            )
+        })
+
+        it('master cria mapa retrato large com 20x30', async () => {
+            mockPrisma.gameMap.create.mockResolvedValue({ id: 7, nome: 'Torre', gridWidth: 20, gridHeight: 30, adventureId: ADV_ID })
+            const res = await withMaster(request(app).post('/api/maps').send({ nome: 'Torre', shape: 'portrait', size: 'large' }))
+            expect(res.status).toBe(201)
+            expect(mockPrisma.gameMap.create).toHaveBeenCalledWith(
+                expect.objectContaining({ data: expect.objectContaining({ gridWidth: 20, gridHeight: 30 }) })
             )
         })
 
@@ -169,6 +192,18 @@ describe('Maps Routes (/api/maps)', () => {
             expect(res.status).toBe(200)
             expect(mockPrisma.gameMap.update).toHaveBeenCalledWith(
                 expect.objectContaining({ data: expect.objectContaining({ backgroundUrl: null }) })
+            )
+        })
+
+        it('muda o formato para retrato deduzindo o size atual (medium landscape -> medium portrait)', async () => {
+            // 21x14 = landscape medium; ao enviar so shape, size e deduzido como medium
+            mockPrisma.gameMap.findUnique.mockResolvedValue({ id: 1, adventureId: ADV_ID, gridWidth: 21, gridHeight: 14 })
+            mockPrisma.gameMap.update.mockResolvedValue({ id: 1, adventureId: ADV_ID, gridWidth: 14, gridHeight: 21 })
+            mockPrisma.token.findMany.mockResolvedValue([]) // largura encolhe (21->14): checa tokens
+            const res = await withMaster(request(app).patch('/api/maps/1').send({ shape: 'portrait' }))
+            expect(res.status).toBe(200)
+            expect(mockPrisma.gameMap.update).toHaveBeenCalledWith(
+                expect.objectContaining({ where: { id: 1 }, data: expect.objectContaining({ gridWidth: 14, gridHeight: 21 }) })
             )
         })
 

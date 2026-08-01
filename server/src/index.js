@@ -4,12 +4,12 @@ dotenv.config({ override: false })
 import express from 'express'
 import cors from 'cors'
 import cookieParser from 'cookie-parser'
-import { PrismaClient } from '@prisma/client'
 import { randomUUID } from 'crypto'
 import http from 'http'
 import path from 'path'
 import { fileURLToPath } from 'url'
 
+import prisma from './db.js'
 import logger from './logger.js'
 import authMiddleware from './middleware/auth.js'
 import masterOnly from './middleware/masterOnly.js'
@@ -26,7 +26,6 @@ import { initSocket } from './socket/index.js'
 import { rollDice } from './utils/dice.js'
 import { saveRoll, getRolls } from './store/diceRolls.js'
 
-const prisma = new PrismaClient()
 const app = express()
 const isDev = process.env.NODE_ENV !== 'production'
 

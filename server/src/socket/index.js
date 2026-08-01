@@ -1,10 +1,8 @@
 import { Server } from 'socket.io'
-import { PrismaClient } from '@prisma/client'
+import prisma from '../db.js'
 import logger from '../logger.js'
 import { setIo } from './io.js'
 import { registerGridHandlers } from './handlers/grid.js'
-
-const prisma = new PrismaClient()
 
 // Parser minimo de Cookie header (evita depender do cookie-parser aqui).
 function parseCookies(header = '') {

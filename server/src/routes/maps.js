@@ -1,25 +1,19 @@
 import express from 'express'
-import { PrismaClient } from '@prisma/client'
+import prisma from '../db.js'
 import logger from '../logger.js'
+import masterOnly from '../middleware/masterOnly.js'
 import { getIo, mapRoom } from '../socket/io.js'
-import { MAP_PRESETS, DEFAULT_SIZE, clampPosition } from '../utils/grid.js'
+import {
+    DEFAULT_SHAPE, DEFAULT_SIZE, MAP_SHAPES, MAP_SIZES,
+    resolveDimensions, dimensionsToPreset, clampPosition, tokenInclude,
+} from '../utils/grid.js'
+
+const PRESET_ERROR = `shape deve ser um de [${MAP_SHAPES.join(', ')}] e size um de [${MAP_SIZES.join(', ')}]`
 
 const router = express.Router()
-const prisma = new PrismaClient()
 
-// Gerenciamento de mapas/tokens e restrito ao mestre. Mover tokens (PATCH em
-// /api/tokens/:id) e liberado para todos e vive em routes/tokens.js.
-function requireMaster(req, res, next) {
-    if (req.adventureRole !== 'master') {
-        return res.status(403).json({ error: 'Acesso restrito ao mestre' })
-    }
-    next()
-}
-
-// Token sempre acompanhado dos dados minimos do personagem (avatar + HP + type para a sidebar/borda).
-const tokenInclude = {
-    character: { select: { id: true, nome: true, type: true, imageUrl: true, actualHp: true, maxHp: true } },
-}
+// Gerenciamento de mapas/tokens e restrito ao mestre (masterOnly). Mover tokens
+// (PATCH em /api/tokens/:id) e liberado para todos e vive em routes/tokens.js.
 
 // ================= Mapas =================
 
@@ -49,37 +43,37 @@ router.get('/:id', async (req, res, next) => {
     } catch (e) { next(e) }
 })
 
-// POST /api/maps — cria mapa (mestre). Body: { nome, size }
-router.post('/', requireMaster, async (req, res, next) => {
+// POST /api/maps — cria mapa (mestre). Body: { nome, shape, size }
+router.post('/', masterOnly, async (req, res, next) => {
     try {
-        const { nome, size = DEFAULT_SIZE, backgroundUrl = null } = req.body
+        const { nome, shape = DEFAULT_SHAPE, size = DEFAULT_SIZE, backgroundUrl = null } = req.body
         if (!nome || typeof nome !== 'string' || !nome.trim()) {
             return res.status(400).json({ error: 'nome e obrigatorio' })
         }
-        const preset = MAP_PRESETS[size]
-        if (!preset) {
-            return res.status(400).json({ error: 'size deve ser "small", "medium" ou "large"' })
+        const dims = resolveDimensions(shape, size)
+        if (!dims) {
+            return res.status(400).json({ error: PRESET_ERROR })
         }
 
         const map = await prisma.gameMap.create({
             data: {
                 nome: nome.trim(),
-                gridWidth: preset.gridWidth,
-                gridHeight: preset.gridHeight,
+                gridWidth: dims.gridWidth,
+                gridHeight: dims.gridHeight,
                 backgroundUrl: backgroundUrl || null,
                 adventureId: req.adventure.id,
             },
         })
-        logger.info('mapa criado', { id: map.id, adventureId: req.adventure.id, size, requestId: req.requestId })
+        logger.info('mapa criado', { id: map.id, adventureId: req.adventure.id, shape, size, requestId: req.requestId })
         res.status(201).json(map)
     } catch (e) { next(e) }
 })
 
 // PATCH /api/maps/:id — edita nome e/ou size (mestre). Resize clampa tokens.
-router.patch('/:id', requireMaster, async (req, res, next) => {
+router.patch('/:id', masterOnly, async (req, res, next) => {
     try {
         const id = Number(req.params.id)
-        const { nome, size, backgroundUrl } = req.body
+        const { nome, shape, size, backgroundUrl } = req.body
 
         const map = await prisma.gameMap.findUnique({ where: { id } })
         if (!map || map.adventureId !== req.adventure.id) {
@@ -98,19 +92,24 @@ router.patch('/:id', requireMaster, async (req, res, next) => {
         }
         let newWidth = map.gridWidth
         let newHeight = map.gridHeight
-        if (size !== undefined) {
-            const preset = MAP_PRESETS[size]
-            if (!preset) {
-                return res.status(400).json({ error: 'size deve ser "small", "medium" ou "large"' })
+        // Redimensionamento: como o mapa so armazena as dimensoes, deduzimos o
+        // eixo nao enviado a partir das dimensoes atuais (fallback aos defaults
+        // para mapas antigos fora da matriz).
+        if (shape !== undefined || size !== undefined) {
+            const current = dimensionsToPreset(map.gridWidth, map.gridHeight)
+                ?? { shape: DEFAULT_SHAPE, size: DEFAULT_SIZE }
+            const dims = resolveDimensions(shape ?? current.shape, size ?? current.size)
+            if (!dims) {
+                return res.status(400).json({ error: PRESET_ERROR })
             }
-            newWidth = preset.gridWidth
-            newHeight = preset.gridHeight
+            newWidth = dims.gridWidth
+            newHeight = dims.gridHeight
             data.gridWidth = newWidth
             data.gridHeight = newHeight
         }
 
         if (!Object.keys(data).length) {
-            return res.status(400).json({ error: 'nome ou size sao obrigatorios' })
+            return res.status(400).json({ error: 'nome, shape, size ou backgroundUrl sao obrigatorios' })
         }
 
         // Resize que reduz o grid: clampa tokens que ficaram fora dos limites.
@@ -131,13 +130,13 @@ router.patch('/:id', requireMaster, async (req, res, next) => {
             return m
         })
 
-        logger.info('mapa atualizado', { id, size, requestId: req.requestId })
+        logger.info('mapa atualizado', { id, shape, size, requestId: req.requestId })
         res.json(updated)
     } catch (e) { next(e) }
 })
 
 // DELETE /api/maps/:id — deleta mapa e tokens (mestre)
-router.delete('/:id', requireMaster, async (req, res, next) => {
+router.delete('/:id', masterOnly, async (req, res, next) => {
     try {
         const id = Number(req.params.id)
         const map = await prisma.gameMap.findUnique({ where: { id } })
@@ -153,7 +152,7 @@ router.delete('/:id', requireMaster, async (req, res, next) => {
 // POST /api/maps/:id/activate — ativa mapa (mestre).
 // Em transacao: deleta tokens do mapa ativo anterior, desativa-o e ativa o novo.
 // Depois emite grid:activated para redirecionar os clientes da aventura.
-router.post('/:id/activate', requireMaster, async (req, res, next) => {
+router.post('/:id/activate', masterOnly, async (req, res, next) => {
     try {
         const id = Number(req.params.id)
         const map = await prisma.gameMap.findUnique({ where: { id } })
@@ -183,7 +182,7 @@ router.post('/:id/activate', requireMaster, async (req, res, next) => {
 // ================= Tokens (adicionar via mapa) =================
 
 // POST /api/maps/:id/tokens — adiciona token ao mapa (mestre)
-router.post('/:id/tokens', requireMaster, async (req, res, next) => {
+router.post('/:id/tokens', masterOnly, async (req, res, next) => {
     try {
         const mapId = Number(req.params.id)
         const { characterId, posX = 0, posY = 0 } = req.body

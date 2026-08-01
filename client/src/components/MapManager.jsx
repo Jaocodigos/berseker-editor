@@ -2,55 +2,58 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Modal from "./Modal";
 import AvatarUpload from "./AvatarUpload";
 import logger, { API_URL } from "../logger";
+import {
+    SHAPE_OPTIONS, SIZE_OPTIONS, DEFAULT_SHAPE, DEFAULT_SIZE,
+    resolveDimensions, presetFromDims,
+} from "../utils/mapPresets";
 
 const MAP_BG_ENDPOINT = "/api/upload/map-background";
 
-const SIZES = [
-    { value: "small", label: "Pequeno", dims: "15×10" },
-    { value: "medium", label: "Médio", dims: "20×15" },
-    { value: "large", label: "Grande", dims: "30×20" },
-];
-
-// Segmented control de presets, no estilo dos pills de filtro.
-function SizeSegmented({ value, onChange, disabled }) {
+// Segmented control generico, no estilo dos pills de filtro.
+function Segmented({ options, value, onChange, disabled, label }) {
     return (
-        <div className="map-size-segmented" role="group" aria-label="Tamanho do mapa">
-            {SIZES.map((s) => (
+        <div className="map-size-segmented" role="group" aria-label={label}>
+            {options.map((o) => (
                 <button
-                    key={s.value}
+                    key={o.value}
                     type="button"
-                    className={`map-size-option${value === s.value ? " active" : ""}`}
-                    onClick={() => onChange(s.value)}
+                    className={`map-size-option${value === o.value ? " active" : ""}`}
+                    onClick={() => onChange(o.value)}
                     disabled={disabled}
-                    aria-pressed={value === s.value}
+                    aria-pressed={value === o.value}
                 >
-                    <span className="map-size-label">{s.label}</span>
-                    <span className="map-size-dims">{s.dims}</span>
+                    <span className="map-size-label">{o.label}</span>
                 </button>
             ))}
         </div>
     );
 }
 
-// Descobre o preset (small/medium/large) a partir das dimensoes salvas.
-function sizeFromDims(map) {
-    const match = SIZES.find(
-        (s) => `${s.dims}` === `${map.gridWidth}×${map.gridHeight}`
+// Seletor de formato + tamanho, com dica das dimensoes resultantes.
+function ShapeSizePicker({ shape, size, onShape, onSize, disabled }) {
+    const dims = resolveDimensions(shape, size);
+    return (
+        <div className="map-preset-picker">
+            <Segmented options={SHAPE_OPTIONS} value={shape} onChange={onShape} disabled={disabled} label="Formato do mapa" />
+            <Segmented options={SIZE_OPTIONS} value={size} onChange={onSize} disabled={disabled} label="Tamanho do mapa" />
+            {dims && <p className="map-dims-hint">{dims.gridWidth}×{dims.gridHeight} células</p>}
+        </div>
     );
-    return match?.value ?? "medium";
 }
 
 export default function MapManager({ open, onClose, characters = [], onMapsChanged }) {
     const [maps, setMaps] = useState([]);
     const [loading, setLoading] = useState(false);
     const [newName, setNewName] = useState("");
-    const [newSize, setNewSize] = useState("medium");
+    const [newShape, setNewShape] = useState(DEFAULT_SHAPE);
+    const [newSize, setNewSize] = useState(DEFAULT_SIZE);
     const [newBackground, setNewBackground] = useState(null);
     const [creating, setCreating] = useState(false);
 
     const [editId, setEditId] = useState(null);
     const [editName, setEditName] = useState("");
-    const [editSize, setEditSize] = useState("medium");
+    const [editShape, setEditShape] = useState(DEFAULT_SHAPE);
+    const [editSize, setEditSize] = useState(DEFAULT_SIZE);
     const [editBackground, setEditBackground] = useState(null);
 
     const [tokensMapId, setTokensMapId] = useState(null);
@@ -93,11 +96,12 @@ export default function MapManager({ open, onClose, characters = [], onMapsChang
             const res = await fetch(`${API_URL}/api/maps`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ nome: newName.trim(), size: newSize, backgroundUrl: newBackground }),
+                body: JSON.stringify({ nome: newName.trim(), shape: newShape, size: newSize, backgroundUrl: newBackground }),
             });
             if (!res.ok) throw new Error("Falha ao criar mapa");
             setNewName("");
-            setNewSize("medium");
+            setNewShape(DEFAULT_SHAPE);
+            setNewSize(DEFAULT_SIZE);
             setNewBackground(null);
             await fetchMaps();
             onMapsChanged?.();
@@ -110,9 +114,11 @@ export default function MapManager({ open, onClose, characters = [], onMapsChang
     };
 
     const startEdit = (map) => {
+        const { shape, size } = presetFromDims(map.gridWidth, map.gridHeight);
         setEditId(map.id);
         setEditName(map.nome);
-        setEditSize(sizeFromDims(map));
+        setEditShape(shape);
+        setEditSize(size);
         setEditBackground(map.backgroundUrl ?? null);
     };
 
@@ -122,7 +128,7 @@ export default function MapManager({ open, onClose, characters = [], onMapsChang
             const res = await fetch(`${API_URL}/api/maps/${id}`, {
                 method: "PATCH",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ nome: editName.trim(), size: editSize, backgroundUrl: editBackground }),
+                body: JSON.stringify({ nome: editName.trim(), shape: editShape, size: editSize, backgroundUrl: editBackground }),
             });
             if (!res.ok) throw new Error("Falha ao editar mapa");
             setEditId(null);
@@ -235,8 +241,14 @@ export default function MapManager({ open, onClose, characters = [], onMapsChang
                     />
                 </div>
                 <div className="form-field">
-                    <label>Tamanho</label>
-                    <SizeSegmented value={newSize} onChange={setNewSize} disabled={creating} />
+                    <label>Formato e tamanho</label>
+                    <ShapeSizePicker
+                        shape={newShape}
+                        size={newSize}
+                        onShape={setNewShape}
+                        onSize={setNewSize}
+                        disabled={creating}
+                    />
                 </div>
                 <div className="form-field">
                     <label>Fundo (opcional)</label>
@@ -290,7 +302,13 @@ export default function MapManager({ open, onClose, characters = [], onMapsChang
                                         onChange={(e) => setEditName(e.target.value)}
                                         placeholder="Nome do mapa"
                                     />
-                                    <SizeSegmented value={editSize} onChange={setEditSize} disabled={busy} />
+                                    <ShapeSizePicker
+                                        shape={editShape}
+                                        size={editSize}
+                                        onShape={setEditShape}
+                                        onSize={setEditSize}
+                                        disabled={busy}
+                                    />
                                     <AvatarUpload
                                         value={editBackground}
                                         onChange={setEditBackground}
