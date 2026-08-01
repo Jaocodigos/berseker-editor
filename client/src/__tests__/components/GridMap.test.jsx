@@ -13,8 +13,10 @@ function stubCanvas() {
 // jsdom nao implementa PointerEvent (clientX/Y vem undefined via fireEvent.pointer*).
 // Despacha um MouseEvent com o tipo do pointer event — carrega as coordenadas e
 // dispara o handler React equivalente, dentro de act() (forma fireEvent(node, event)).
-function firePointer(canvas, type, clientX, clientY) {
-    fireEvent(canvas, new MouseEvent(type, { clientX, clientY, bubbles: true }))
+function firePointer(canvas, type, clientX, clientY, pointerId = 1) {
+    const event = new MouseEvent(type, { clientX, clientY, bubbles: true })
+    Object.defineProperty(event, 'pointerId', { value: pointerId })
+    fireEvent(canvas, event)
 }
 
 const map = { id: 1, nome: 'Arena', gridWidth: 20, gridHeight: 15, cellSize: 40 }
@@ -96,5 +98,90 @@ describe('GridMap drag & drop', () => {
         firePointer(canvas, 'pointerup', 220, 260)
 
         expect(onMove).not.toHaveBeenCalled()
+    })
+})
+
+describe('GridMap camera', () => {
+    beforeEach(stubCanvas)
+
+    function setupCamera() {
+        const { container, getByRole, getByLabelText } = render(
+            <GridMap map={map} tokens={[]} onMove={vi.fn()} />
+        )
+        const wrapper = container.querySelector('.grid-map-wrapper')
+        const canvas = container.querySelector('canvas')
+
+        wrapper.getBoundingClientRect = () => ({
+            left: 0, top: 0, width: 800, height: 600, right: 800, bottom: 600,
+        })
+        canvas.getBoundingClientRect = () => ({
+            left: 0, top: 0, width: 800, height: 600, right: 800, bottom: 600,
+        })
+        Object.defineProperties(wrapper, {
+            clientWidth: { configurable: true, value: 800 },
+            clientHeight: { configurable: true, value: 600 },
+        })
+        Object.defineProperties(canvas, {
+            offsetWidth: { configurable: true, value: 800 },
+            offsetHeight: { configurable: true, value: 600 },
+        })
+
+        return { canvas, getByRole, getByLabelText }
+    }
+
+    it('aumenta e diminui o zoom pelos controles visiveis', () => {
+        const { canvas, getByRole, getByLabelText } = setupCamera()
+
+        fireEvent.click(getByRole('button', { name: 'Aumentar zoom' }))
+        expect(getByLabelText('Nível de zoom')).toHaveTextContent('125%')
+        expect(canvas.style.transform).toContain('scale(1.25)')
+
+        fireEvent.click(getByRole('button', { name: 'Diminuir zoom' }))
+        expect(getByLabelText('Nível de zoom')).toHaveTextContent('100%')
+    })
+
+    it('controla o zoom com a roda do mouse', () => {
+        const { canvas, getByLabelText } = setupCamera()
+
+        fireEvent.wheel(canvas, { clientX: 400, clientY: 300, deltaY: -200 })
+
+        expect(getByLabelText('Nível de zoom')).not.toHaveTextContent('100%')
+        expect(canvas.style.transform).not.toContain('scale(1)')
+    })
+
+    it('arrasta o mapa pelo fundo quando existe area fora da tela', () => {
+        const { canvas, getByRole } = setupCamera()
+        fireEvent.click(getByRole('button', { name: 'Aumentar zoom' }))
+        const beforePan = canvas.style.transform
+
+        firePointer(canvas, 'pointerdown', 600, 400)
+        firePointer(canvas, 'pointermove', 500, 300)
+        firePointer(canvas, 'pointerup', 500, 300)
+
+        expect(canvas.style.transform).not.toBe(beforePan)
+    })
+
+    it('faz pinch zoom mantendo dois ponteiros ativos', () => {
+        const { canvas, getByLabelText } = setupCamera()
+
+        firePointer(canvas, 'pointerdown', 300, 300, 1)
+        firePointer(canvas, 'pointerdown', 400, 300, 2)
+        firePointer(canvas, 'pointermove', 500, 300, 2)
+
+        expect(getByLabelText('Nível de zoom')).toHaveTextContent('200%')
+        expect(canvas.style.transform).toContain('scale(2)')
+
+        firePointer(canvas, 'pointerup', 500, 300, 2)
+        firePointer(canvas, 'pointerup', 300, 300, 1)
+    })
+
+    it('reenquadra o mapa depois de navegar', () => {
+        const { canvas, getByRole, getByLabelText } = setupCamera()
+        fireEvent.click(getByRole('button', { name: 'Aumentar zoom' }))
+
+        fireEvent.click(getByRole('button', { name: 'Enquadrar mapa' }))
+
+        expect(getByLabelText('Nível de zoom')).toHaveTextContent('100%')
+        expect(canvas.style.transform).toBe('translate(0px, 0px) scale(1)')
     })
 })
