@@ -7,6 +7,10 @@ const TOKEN_BORDER = "#38bdf8"; // PC (azul)
 const ENEMY_BORDER = "#f43f5e"; // inimigo (vermelho)
 const DRAG_BORDER = "#fbbf24"; // token sendo arrastado (âmbar)
 const PLACEHOLDER_BG = "#2b2b38";
+// Tamanho minimo de exibicao da celula (px). Abaixo disso os tokens ficam
+// dificeis de tocar/arrastar; entao em vez de encolher o mapa para caber na
+// tela, forcamos essa largura minima e deixamos o wrapper rolar na horizontal.
+const MIN_CELL_DISPLAY = 28;
 
 // Converte uma posicao em pixels para a celula mais proxima, com clamp aos limites.
 export function snapToCell(px, py, cellSize, gridWidth, gridHeight) {
@@ -24,6 +28,9 @@ export default function GridMap({ map, tokens, onMove, canMove = true }) {
     const cellSize = map.cellSize || 40;
     const width = map.gridWidth * cellSize;
     const height = map.gridHeight * cellSize;
+    // Largura minima em tela para manter as celulas tocaveis; se ultrapassar o
+    // container, o wrapper (.grid-map-wrapper) rola na horizontal.
+    const minDisplayWidth = map.gridWidth * MIN_CELL_DISPLAY;
 
     // Garante que a imagem de um avatar esteja carregada (cache por src).
     const ensureImage = useCallback((src) => {
@@ -178,7 +185,7 @@ export default function GridMap({ map, tokens, onMove, canMove = true }) {
                 width={width}
                 height={height}
                 className="grid-map-canvas"
-                style={{ touchAction: "none", cursor: canMove ? "grab" : "default" }}
+                style={{ touchAction: "none", cursor: canMove ? "grab" : "default", minWidth: `${minDisplayWidth}px` }}
                 onPointerDown={handlePointerDown}
                 onPointerMove={handlePointerMove}
                 onPointerUp={handlePointerUp}

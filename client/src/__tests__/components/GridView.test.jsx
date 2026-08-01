@@ -31,6 +31,13 @@ describe('GridView', () => {
     beforeEach(() => {
         vi.clearAllMocks()
         stubCanvas()
+        Object.defineProperty(document, 'fullscreenElement', {
+            configurable: true,
+            writable: true,
+            value: null,
+        })
+        document.exitFullscreen = vi.fn().mockResolvedValue(undefined)
+        HTMLElement.prototype.requestFullscreen = vi.fn().mockResolvedValue(undefined)
         global.fetch = vi.fn((url) => {
             if (url.endsWith('/api/maps')) return ok([{ id: 1, nome: 'Arena', active: true, gridWidth: 20, gridHeight: 15, cellSize: 40 }])
             if (/\/api\/maps\/1$/.test(url)) return ok(detail)
@@ -74,5 +81,32 @@ describe('GridView', () => {
         await waitFor(() =>
             expect(fakeSocket.emit).toHaveBeenCalledWith('grid:move', { tokenId: 10, posX: 5, posY: 6 })
         )
+    })
+
+    it('entra em tela cheia somente com o container do mapa', async () => {
+        const { container } = render(<GridView />)
+        await screen.findByText('Hero')
+
+        const mapContainer = container.querySelector('.grid-view-main')
+        const sidebar = container.querySelector('.grid-sidebar')
+        fireEvent.click(screen.getByRole('button', { name: 'Entrar em tela cheia' }))
+
+        await waitFor(() => expect(mapContainer.requestFullscreen).toHaveBeenCalled())
+        expect(mapContainer.contains(sidebar)).toBe(false)
+        expect(screen.getByRole('button', { name: 'Sair da tela cheia' })).toBeInTheDocument()
+    })
+
+    it('sincroniza o botao ao sair da tela cheia com Esc', async () => {
+        const { container } = render(<GridView />)
+        await screen.findByText('Hero')
+
+        const mapContainer = container.querySelector('.grid-view-main')
+        document.fullscreenElement = mapContainer
+        fireEvent(document, new Event('fullscreenchange'))
+        expect(screen.getByRole('button', { name: 'Sair da tela cheia' })).toBeInTheDocument()
+
+        document.fullscreenElement = null
+        fireEvent(document, new Event('fullscreenchange'))
+        expect(screen.getByRole('button', { name: 'Entrar em tela cheia' })).toBeInTheDocument()
     })
 })

@@ -1,10 +1,9 @@
 import express from 'express'
-import { PrismaClient } from '@prisma/client'
+import prisma from '../db.js'
 import adminAuth from '../middleware/adminAuth.js'
 import logger from '../logger.js'
 
 const router = express.Router()
-const prisma = new PrismaClient()
 
 // Aplica adminAuth a todas as rotas deste router, exceto as rotas de seleção de aventura
 // (POST /:id/select e POST /deselect) que sao tratadas em index.js com authMiddleware comum.

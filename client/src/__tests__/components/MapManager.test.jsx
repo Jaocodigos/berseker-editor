@@ -36,10 +36,15 @@ describe('MapManager', () => {
         expect(within(arena.closest('.map-item')).getByText('20×15')).toBeInTheDocument()
     })
 
-    it('mostra o segmented control com os 3 presets', async () => {
+    it('mostra os segmented controls de formato e tamanho', async () => {
         mockFetch({ maps: [] })
         render(<MapManager open onClose={() => {}} characters={characters} />)
-        expect(await screen.findByRole('button', { name: /Pequeno/ })).toBeInTheDocument()
+        // formato
+        expect(await screen.findByRole('button', { name: /Paisagem/ })).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: /Quadrado/ })).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: /Retrato/ })).toBeInTheDocument()
+        // tamanho
+        expect(screen.getByRole('button', { name: /Pequeno/ })).toBeInTheDocument()
         expect(screen.getByRole('button', { name: /Médio/ })).toBeInTheDocument()
         expect(screen.getByRole('button', { name: /Grande/ })).toBeInTheDocument()
     })
@@ -53,13 +58,14 @@ describe('MapManager', () => {
         expect(grande).toHaveAttribute('aria-pressed', 'true')
     })
 
-    it('cria um mapa enviando nome e size', async () => {
+    it('cria um mapa enviando nome, shape e size', async () => {
         const fetchMock = mockFetch({ maps: [] })
         const user = userEvent.setup()
         render(<MapManager open onClose={() => {}} characters={characters} />)
 
         await user.type(screen.getByPlaceholderText('Nome do mapa'), 'Masmorra')
-        await user.click(await screen.findByRole('button', { name: /Pequeno/ }))
+        await user.click(await screen.findByRole('button', { name: /Retrato/ }))
+        await user.click(screen.getByRole('button', { name: /Pequeno/ }))
         await user.click(screen.getByRole('button', { name: 'Criar mapa' }))
 
         await waitFor(() => {
@@ -67,7 +73,7 @@ describe('MapManager', () => {
                 ([url, opts]) => url.endsWith('/api/maps') && opts?.method === 'POST'
             )
             expect(call).toBeTruthy()
-            expect(JSON.parse(call[1].body)).toEqual({ nome: 'Masmorra', size: 'small', backgroundUrl: null })
+            expect(JSON.parse(call[1].body)).toEqual({ nome: 'Masmorra', shape: 'portrait', size: 'small', backgroundUrl: null })
         })
     })
 

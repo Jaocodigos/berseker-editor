@@ -1759,14 +1759,31 @@ button:focus-visible {
   color: var(--accent-primary-strong);
 }
 
-/* Segmented control de tamanho de mapa (estilo pill) */
+/* Seletor de formato + tamanho do mapa */
+.map-preset-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.map-dims-hint {
+  margin: 0.1rem 0 0;
+  text-align: center;
+  font-size: 0.78rem;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+/* Segmented control (estilo pill). flex-wrap: em telas estreitas os botoes
+   refluem em vez de espremer os rotulos. */
 .map-size-segmented {
   display: flex;
+  flex-wrap: wrap;
   gap: 0.4rem;
 }
 
 .map-size-option {
-  flex: 1;
+  flex: 1 1 72px;
+  min-width: 72px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1930,21 +1947,85 @@ button:focus-visible {
 .grid-view-main {
   flex: 1 1 auto;
   min-width: 0;
+  position: relative;
+}
+
+.grid-fullscreen-button {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  z-index: 5;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #f8fafc;
+  background: rgba(15, 15, 18, 0.82);
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  border-radius: 10px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(6px);
+}
+
+.grid-fullscreen-button:hover {
+  color: #ffffff;
+  border-color: rgba(56, 189, 248, 0.9);
+  background: rgba(20, 30, 38, 0.92);
+}
+
+.grid-fullscreen-button svg {
+  width: 22px;
+  height: 22px;
+}
+
+.grid-view-main:fullscreen,
+.grid-view-main--fullscreen-fallback {
+  width: 100vw;
+  height: 100dvh;
+  padding: max(0.5rem, env(safe-area-inset-top)) max(0.5rem, env(safe-area-inset-right)) max(0.5rem, env(safe-area-inset-bottom)) max(0.5rem, env(safe-area-inset-left));
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #09090b;
+}
+
+.grid-view-main--fullscreen-fallback {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+}
+
+.grid-view-main:fullscreen .grid-map-wrapper,
+.grid-view-main--fullscreen-fallback .grid-map-wrapper {
+  width: 100%;
+  max-height: 100%;
+}
+
+.grid-view-main:fullscreen .grid-fullscreen-button,
+.grid-view-main--fullscreen-fallback .grid-fullscreen-button {
+  top: max(0.75rem, env(safe-area-inset-top));
+  right: max(0.75rem, env(safe-area-inset-right));
 }
 
 .grid-map-wrapper {
   width: 100%;
   overflow: auto;
+  -webkit-overflow-scrolling: touch;
   border-radius: 12px;
   border: 1px solid rgba(255, 255, 255, 0.12);
   background: #14141a;
 }
 
+/* width:100% encaixa na largura do container; min-width (inline, por mapa)
+   garante celulas tocaveis e faz o wrapper rolar na horizontal em telas
+   estreitas em vez de encolher os tokens. */
 .grid-map-canvas {
   display: block;
   width: 100%;
   height: auto;
-  max-width: 100%;
 }
 
 .grid-sidebar {

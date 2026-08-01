@@ -36,15 +36,19 @@ export function AuthProvider({ children }) {
 
     const logout = useCallback(async () => {
         logger.info('logout')
-        await fetch(`${API_URL}/api/auth/logout`, { method: 'POST' })
-        setCredentials(null)
+        try {
+            await fetch(`${API_URL}/api/auth/logout`, { method: 'POST' })
+        } catch (e) {
+            logger.warn('logout: falha ao encerrar sessão no servidor', { message: e.message })
+        } finally {
+            // Mesmo se o servidor estiver inacessível, o estado local é limpo
+            // para o usuário não ficar preso como "logado".
+            setCredentials(null)
+        }
     }, [])
 
-    // authHeader mantido como {} para compatibilidade — cookies são enviados automaticamente
-    const authHeader = {}
-
     return (
-        <AuthContext.Provider value={{ credentials, login, logout, authHeader, loading }}>
+        <AuthContext.Provider value={{ credentials, login, logout, loading }}>
             {children}
         </AuthContext.Provider>
     )

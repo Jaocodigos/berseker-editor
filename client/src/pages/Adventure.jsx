@@ -3,12 +3,10 @@ import { PlusIcon, XMarkIcon } from "@heroicons/react/16/solid";
 import Modal from "../components/Modal";
 import MapManager from "../components/MapManager";
 import GridView from "../components/GridView";
-import { useAuth } from "../context/AuthContext";
 import { useAdventure } from "../context/AdventureContext";
 import logger, { API_URL } from "../logger";
 
 export default function Adventure() {
-    const { authHeader } = useAuth()
     const { isMaster } = useAdventure()
     const [availableCharacters, setAvailableCharacters] = useState([]);
     const [characters, setCharacters] = useState([]);
@@ -52,7 +50,6 @@ export default function Adventure() {
             try {
                 const response = await fetch(`${API_URL}/api/characters`, {
                     signal: controller.signal,
-                    headers: { ...authHeader },
                 });
                 if (!response.ok) {
                     throw new Error("Falha ao carregar personagens.");
@@ -82,19 +79,19 @@ export default function Adventure() {
 
     // Ref para acessar sempre os valores mais recentes dentro do setInterval
     // sem colocá-los como dependência (o que reiniciaria o intervalo a cada mudança)
-    const sessionRef = useRef({ characters: [], authHeader: {} });
+    const sessionRef = useRef({ characters: [] });
     useEffect(() => {
-        sessionRef.current = { characters, authHeader };
-    }, [characters, authHeader]);
+        sessionRef.current = { characters };
+    }, [characters]);
 
     useEffect(() => {
         const interval = setInterval(async () => {
-            const { characters: current, authHeader: headers } = sessionRef.current;
+            const { characters: current } = sessionRef.current;
             if (current.length === 0) return;
 
             const results = await Promise.allSettled(
                 current.map((char) =>
-                    fetch(`${API_URL}/api/characters/${char.id}`, { headers })
+                    fetch(`${API_URL}/api/characters/${char.id}`)
                         .then((res) => (res.ok ? res.json() : char))
                         .catch(() => char)
                 )
@@ -113,9 +110,7 @@ export default function Adventure() {
     // Fetch inimigos na aventura
     const fetchAdventureEnemies = async () => {
         try {
-            const res = await fetch(`${API_URL}/api/adventure/enemies`, {
-                headers: { ...authHeader },
-            });
+            const res = await fetch(`${API_URL}/api/adventure/enemies`);
             if (!res.ok) return;
             const data = await res.json();
             const newIds = new Set(data.map((e) => e.id));
@@ -177,8 +172,7 @@ export default function Adventure() {
 
             try {
                 const res = await fetch(
-                    `${API_URL}/api/adventure/dice-rolls?characterIds=${allIds.join(",")}`,
-                    { headers: { ...authHeader } }
+                    `${API_URL}/api/adventure/dice-rolls?characterIds=${allIds.join(",")}`
                 );
                 if (!res.ok) return;
                 const rolls = await res.json();
@@ -196,7 +190,7 @@ export default function Adventure() {
         }, 5000);
 
         return () => clearInterval(interval);
-    }, [characters, enemies, authHeader, showDiceRoll]);
+    }, [characters, enemies, showDiceRoll]);
 
     // Acoes de inimigos (apenas mestre)
     const [enemyDamageTargetId, setEnemyDamageTargetId] = useState(null);
@@ -220,7 +214,7 @@ export default function Adventure() {
             setEnemyDamageSavingId(enemy.id);
             const res = await fetch(`${API_URL}/api/characters/${enemy.id}`, {
                 method: "PATCH",
-                headers: { "Content-Type": "application/json", ...authHeader },
+                headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ actualHp: nextHp }),
             });
             if (!res.ok) throw new Error();
@@ -243,7 +237,7 @@ export default function Adventure() {
             setEnemyAbilitySavingId(enemy.id);
             const res = await fetch(`${API_URL}/api/characters/${enemy.id}/use-ability`, {
                 method: "POST",
-                headers: { "Content-Type": "application/json", ...authHeader },
+                headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ abilityId: Number(enemySelectedAbilityId) }),
             });
             if (!res.ok) {
@@ -277,7 +271,7 @@ export default function Adventure() {
             setEnemyRestSavingId(enemy.id);
             const res = await fetch(`${API_URL}/api/characters/${enemy.id}/rest`, {
                 method: "POST",
-                headers: { "Content-Type": "application/json", ...authHeader },
+                headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ type }),
             });
             if (!res.ok) throw new Error();
@@ -308,7 +302,6 @@ export default function Adventure() {
         try {
             const res = await fetch(`${API_URL}/api/characters/${enemyId}/leave-adventure`, {
                 method: "POST",
-                headers: { ...authHeader },
             });
             if (!res.ok) throw new Error();
             setEnemies((prev) => prev.filter((e) => e.id !== enemyId));
@@ -371,7 +364,7 @@ export default function Adventure() {
             setXpSavingId(character.id);
             const response = await fetch(`${API_URL}/api/characters/${character.id}`, {
                 method: "PATCH",
-                headers: { "Content-Type": "application/json", ...authHeader },
+                headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(body),
             });
             if (!response.ok) throw new Error("Falha ao atualizar XP.");
@@ -399,7 +392,7 @@ export default function Adventure() {
                 `${API_URL}/api/characters/${character.id}/rest`,
                 {
                     method: "POST",
-                    headers: { "Content-Type": "application/json", ...authHeader },
+                    headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ type }),
                 }
             );
@@ -450,7 +443,7 @@ export default function Adventure() {
                 `${API_URL}/api/characters/${character.id}/use-ability`,
                 {
                     method: "POST",
-                    headers: { "Content-Type": "application/json", ...authHeader },
+                    headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ abilityId: Number(selectedAbilityId) }),
                 }
             );
@@ -501,7 +494,7 @@ export default function Adventure() {
             setDamageSavingId(character.id);
             const response = await fetch(`${API_URL}/api/characters/${character.id}`, {
                 method: "PATCH",
-                headers: { "Content-Type": "application/json", ...authHeader },
+                headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ actualHp: nextHp }),
             });
             if (!response.ok) {

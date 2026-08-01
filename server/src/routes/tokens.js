@@ -1,15 +1,11 @@
 import express from 'express'
-import { PrismaClient } from '@prisma/client'
+import prisma from '../db.js'
 import logger from '../logger.js'
+import masterOnly from '../middleware/masterOnly.js'
 import { getIo, mapRoom } from '../socket/io.js'
-import { clampPosition } from '../utils/grid.js'
+import { clampPosition, tokenInclude } from '../utils/grid.js'
 
 const router = express.Router()
-const prisma = new PrismaClient()
-
-const tokenInclude = {
-    character: { select: { id: true, nome: true, type: true, imageUrl: true, actualHp: true, maxHp: true } },
-}
 
 // Carrega o token e valida que pertence a um mapa da aventura atual.
 async function loadTokenInAdventure(id, adventureId) {
@@ -51,11 +47,8 @@ router.patch('/:id', async (req, res, next) => {
 })
 
 // DELETE /api/tokens/:id — remove token do mapa (mestre)
-router.delete('/:id', async (req, res, next) => {
+router.delete('/:id', masterOnly, async (req, res, next) => {
     try {
-        if (req.adventureRole !== 'master') {
-            return res.status(403).json({ error: 'Acesso restrito ao mestre' })
-        }
         const id = Number(req.params.id)
         const token = await loadTokenInAdventure(id, req.adventure.id)
         if (!token) return res.status(404).json({ error: 'Token nao encontrado' })

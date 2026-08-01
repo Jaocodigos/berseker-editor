@@ -1,18 +1,11 @@
 import express from 'express'
-import { PrismaClient } from '@prisma/client'
+import prisma from '../db.js'
 import logger from '../logger.js'
+import masterOnly from '../middleware/masterOnly.js'
 
 const router = express.Router()
-const prisma = new PrismaClient()
 
 const COLOR_REGEX = /^#[0-9A-Fa-f]{6}$/
-
-function requireMaster(req, res, next) {
-    if (req.adventureRole !== 'master') {
-        return res.status(403).json({ error: 'Acesso restrito ao mestre' })
-    }
-    next()
-}
 
 router.get('/', async (req, res, next) => {
     try {
@@ -24,7 +17,7 @@ router.get('/', async (req, res, next) => {
     } catch (e) { next(e) }
 })
 
-router.post('/', requireMaster, async (req, res, next) => {
+router.post('/', masterOnly, async (req, res, next) => {
     try {
         const { nome, color } = req.body
         if (!nome || typeof nome !== 'string' || !nome.trim()) {
@@ -43,7 +36,7 @@ router.post('/', requireMaster, async (req, res, next) => {
     } catch (e) { next(e) }
 })
 
-router.patch('/:id', requireMaster, async (req, res, next) => {
+router.patch('/:id', masterOnly, async (req, res, next) => {
     try {
         const id = Number(req.params.id)
         const { nome, color } = req.body
@@ -73,7 +66,7 @@ router.patch('/:id', requireMaster, async (req, res, next) => {
     } catch (e) { next(e) }
 })
 
-router.delete('/:id', requireMaster, async (req, res, next) => {
+router.delete('/:id', masterOnly, async (req, res, next) => {
     try {
         const id = Number(req.params.id)
 

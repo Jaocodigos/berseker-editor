@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { ArrowsPointingInIcon, ArrowsPointingOutIcon } from "@heroicons/react/16/solid";
 import GridMap from "./GridMap";
 import { getSocket } from "../socket";
 import logger, { API_URL } from "../logger";
@@ -9,7 +10,9 @@ export default function GridView() {
     const [activeMap, setActiveMap] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
+    const [fullscreenMode, setFullscreenMode] = useState(null); // "native" | "fallback" | null
     const mapIdRef = useRef(null);
+    const mapContainerRef = useRef(null);
 
     const loadActiveMap = useCallback(async () => {
         setLoading(true);
@@ -90,6 +93,54 @@ export default function GridView() {
         getSocket().emit("grid:move", { tokenId, posX, posY });
     }, []);
 
+    // Mantem o botao sincronizado quando o usuario sai da tela cheia com Esc.
+    useEffect(() => {
+        const onFullscreenChange = () => {
+            const isMapFullscreen = document.fullscreenElement === mapContainerRef.current;
+            setFullscreenMode((current) => {
+                if (isMapFullscreen) return "native";
+                return current === "native" ? null : current;
+            });
+        };
+
+        document.addEventListener("fullscreenchange", onFullscreenChange);
+        return () => document.removeEventListener("fullscreenchange", onFullscreenChange);
+    }, []);
+
+    // Fallback para navegadores que nao permitem fullscreen em elementos comuns.
+    useEffect(() => {
+        if (fullscreenMode !== "fallback") return;
+        const onKeyDown = (event) => {
+            if (event.key === "Escape") setFullscreenMode(null);
+        };
+        document.addEventListener("keydown", onKeyDown);
+        return () => document.removeEventListener("keydown", onKeyDown);
+    }, [fullscreenMode]);
+
+    const toggleFullscreen = useCallback(async () => {
+        const target = mapContainerRef.current;
+        if (!target) return;
+
+        if (fullscreenMode === "fallback") {
+            setFullscreenMode(null);
+            return;
+        }
+
+        if (document.fullscreenElement === target) {
+            await document.exitFullscreen?.();
+            return;
+        }
+
+        try {
+            if (!target.requestFullscreen) throw new Error("Fullscreen API indisponivel");
+            await target.requestFullscreen();
+            setFullscreenMode("native");
+        } catch (err) {
+            logger.warn("fullscreen nativo indisponivel; usando fallback", { message: err.message });
+            setFullscreenMode("fallback");
+        }
+    }, [fullscreenMode]);
+
     if (loading) {
         return <div className="grid-empty"><p className="muted">Carregando mapa…</p></div>;
     }
@@ -106,10 +157,28 @@ export default function GridView() {
     }
 
     const tokens = activeMap.tokens ?? [];
+    const isFullscreen = fullscreenMode !== null;
 
     return (
         <div className="grid-view">
-            <div className="grid-view-main">
+            <div
+                ref={mapContainerRef}
+                className={`grid-view-main${fullscreenMode === "fallback" ? " grid-view-main--fullscreen-fallback" : ""}`}
+            >
+                <button
+                    type="button"
+                    className="grid-fullscreen-button"
+                    onClick={toggleFullscreen}
+                    aria-label={isFullscreen ? "Sair da tela cheia" : "Entrar em tela cheia"}
+                    title={isFullscreen ? "Sair da tela cheia" : "Ver mapa em tela cheia"}
+                    aria-pressed={isFullscreen}
+                >
+                    {isFullscreen ? (
+                        <ArrowsPointingInIcon aria-hidden="true" />
+                    ) : (
+                        <ArrowsPointingOutIcon aria-hidden="true" />
+                    )}
+                </button>
                 <GridMap map={activeMap} tokens={tokens} onMove={handleMove} />
             </div>
             <aside className="grid-sidebar">

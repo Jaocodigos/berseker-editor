@@ -1,7 +1,5 @@
-import { PrismaClient } from '@prisma/client'
+import prisma from '../db.js'
 import logger from '../logger.js'
-
-const prisma = new PrismaClient()
 
 async function authMiddleware(req, res, next) {
     const token = req.cookies?.session

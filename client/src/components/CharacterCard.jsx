@@ -2,13 +2,11 @@ import { useState, useEffect } from "react";
 import Modal from "./Modal";
 import { FireIcon, TrashIcon, PencilSquareIcon } from '@heroicons/react/16/solid'
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
 import { API_URL } from "../logger";
 import AvatarUpload, { avatarSrc } from "./AvatarUpload";
 
 
 export default function CharacterCard({ character, onRefresh }) {
-    const { authHeader } = useAuth()
     const pillars = character.pillars || [];
     const navigate = useNavigate();
 
@@ -85,7 +83,7 @@ export default function CharacterCard({ character, onRefresh }) {
         try {
             await fetch(`${API_URL}/api/characters/${character.id}`, {
                 method: 'PATCH',
-                headers: { 'Content-Type': 'application/json', ...authHeader },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     name: editData.nome,
                     imageUrl: editData.imageUrl,
@@ -102,7 +100,6 @@ export default function CharacterCard({ character, onRefresh }) {
             for (const pillarId of deletedPillarIds) {
                 await fetch(`${API_URL}/api/pillars/${pillarId}`, {
                     method: 'DELETE',
-                    headers: { ...authHeader },
                 });
             }
 
@@ -110,7 +107,7 @@ export default function CharacterCard({ character, onRefresh }) {
                 if (pillar.id) {
                     await fetch(`${API_URL}/api/pillars/${pillar.id}`, {
                         method: 'PATCH',
-                        headers: { 'Content-Type': 'application/json', ...authHeader },
+                        headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
                             nome: pillar.nome,
                             tipo: pillar.tipo,
@@ -121,7 +118,7 @@ export default function CharacterCard({ character, onRefresh }) {
                 } else {
                     await fetch(`${API_URL}/api/characters/${character.id}/pillars`, {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json', ...authHeader },
+                        headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
                             name: pillar.nome,
                             type: pillar.tipo,
@@ -145,7 +142,6 @@ export default function CharacterCard({ character, onRefresh }) {
         try {
             const res = await fetch(`${API_URL}/api/characters/${id}`, {
                 method: "DELETE",
-                headers: { ...authHeader }
             });
 
             if (!res.ok) throw new Error("Falha ao deletar personagem");

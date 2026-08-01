@@ -4,12 +4,10 @@ import CharacterFilter from "../components/CharacterFilter";
 import AvatarUpload from "../components/AvatarUpload";
 import { TrashIcon } from '@heroicons/react/16/solid'
 import {PlusIcon} from "@heroicons/react/16/solid/index.js";
-import { useAuth } from "../context/AuthContext";
 import logger, { API_URL } from "../logger";
 import { filterCharacters } from "../utils/filterCharacters";
 
 export default function Characters() {
-    const { authHeader } = useAuth()
     const [showModal, setShowModal] = useState(false);
     const [pillars, setPillars] = useState([]);
     const [characterName, setCharacterName] = useState("");
@@ -42,9 +40,7 @@ export default function Characters() {
 
     const fetchCharacters = async () => {
         try {
-            const res = await fetch(`${API_URL}/api/characters`, {
-                headers: { ...authHeader }
-            });
+            const res = await fetch(`${API_URL}/api/characters`);
             const data = await res.json();
             setCharacters(data);
         } catch (err) {
@@ -94,10 +90,7 @@ export default function Characters() {
         try {
             const response = await fetch(`${API_URL}/api/characters`, {
                 method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    ...authHeader
-                },
+                headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(personagem)
             });
 
